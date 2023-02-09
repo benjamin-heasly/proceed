@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "example_package_ninjaben"
+version = "0.0.1"
+authors = [
+  { name="Ben Heasly", email="benjamin.heasly@gmail.com" }
+]
+description = "A small example package"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: The Unlicense (Unlicense)",
+  "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/benjamin-heasly/pipeline-stuff"
+"Bug Tracker" = "https://github.com/benjamin-heasly/pipeline-stuff/issues"
