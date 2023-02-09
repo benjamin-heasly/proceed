@@ -20,3 +20,8 @@ classifiers = [
 [project.urls]
 "Homepage" = "https://github.com/benjamin-heasly/pipeline-stuff"
 "Bug Tracker" = "https://github.com/benjamin-heasly/pipeline-stuff/issues"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
