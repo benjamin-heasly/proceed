@@ -5,10 +5,11 @@ build-backend = "hatchling.build"
 [project]
 name = "pipeline_stuff"
 version = "0.0.1"
+description = "Execute pipelines based on files and containers."
+keywords = []
 authors = [
   { name="Ben Heasly", email="benjamin.heasly@gmail.com" }
 ]
-description = "A small example package"
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
@@ -16,6 +17,7 @@ classifiers = [
   "License :: OSI Approved :: The Unlicense (Unlicense)",
   "Operating System :: OS Independent",
 ]
+dependencies = []
 
 [project.urls]
 "Homepage" = "https://github.com/benjamin-heasly/pipeline-stuff"
@@ -25,3 +27,28 @@ classifiers = [
 addopts = [
     "--import-mode=importlib",
 ]
+
+# Hatch is a tool to manage Python projects and packaging.
+# https://github.com/pypa/hatch
+# Python packaging is a horrible mess, but maybe Hatch will be a good thing.
+# python -m pip install pipx-in-pipx --user
+# pipx install hatch
+[tool.hatch]
+
+[tool.hatch.envs.test]
+dependencies = [
+  "pytest",
+  "pytest-cov",
+]
+
+[tool.hatch.envs.test.scripts]
+cov = 'pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=pipeline_stuff --cov=tests'
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/.github",
+  "/docs",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pipeline_stuff"]
