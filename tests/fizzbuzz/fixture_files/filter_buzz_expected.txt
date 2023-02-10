@@ -1,0 +1,6 @@
+15 fizzbuzz
+30 fizzbuzz
+45 fizzbuzz
+60 fizzbuzz
+75 fizzbuzz
+90 fizzbuzz
