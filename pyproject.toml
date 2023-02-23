@@ -17,7 +17,7 @@ classifiers = [
   "License :: OSI Approved :: The Unlicense (Unlicense)",
   "Operating System :: OS Independent",
 ]
-dependencies = []
+dependencies = ["docker"]
 
 [project.urls]
 "Homepage" = "https://github.com/benjamin-heasly/pipeline-stuff"

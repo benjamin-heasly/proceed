@@ -37,7 +37,7 @@ def test_append():
     assert fizzbuzz.append("15") == "15 fizzbuzz"
 
 @fixture
-def test_files(request):
+def fixture_files(request):
     test_dir = Path(request.module.__file__).parent
     files_dir = Path(test_dir, 'fixture_files')
     text_files = files_dir.glob("*.txt")
@@ -52,17 +52,17 @@ def assert_files_equal(a_file, b_file):
     
     assert a_text == b_text
 
-def test_classify_lines(test_files, tmp_path):
+def test_classify_lines(fixture_files, tmp_path):
     out_file = Path(tmp_path, 'classify_out.txt')
-    fizzbuzz.classify_lines(test_files['classify_in.txt'], out_file)
-    assert_files_equal(out_file, test_files['classify_expected.txt'])
+    fizzbuzz.classify_lines(fixture_files['classify_in.txt'], out_file)
+    assert_files_equal(out_file, fixture_files['classify_expected.txt'])
 
-def test_filter_fizz_lines(test_files, tmp_path):
+def test_filter_fizz_lines(fixture_files, tmp_path):
     out_file = Path(tmp_path, 'filter_fizz_out.txt')
-    fizzbuzz.filter_lines(test_files['classify_expected.txt'], out_file, 'fizz')
-    assert_files_equal(out_file, test_files['filter_fizz_expected.txt'])
+    fizzbuzz.filter_lines(fixture_files['classify_expected.txt'], out_file, 'fizz')
+    assert_files_equal(out_file, fixture_files['filter_fizz_expected.txt'])
 
-def test_filter_buzz_lines(test_files, tmp_path):
+def test_filter_buzz_lines(fixture_files, tmp_path):
     out_file = Path(tmp_path, 'filter_buzz_out.txt')
-    fizzbuzz.filter_lines(test_files['filter_fizz_expected.txt'], out_file, 'buzz')
-    assert_files_equal(out_file, test_files['filter_buzz_expected.txt'])
+    fizzbuzz.filter_lines(fixture_files['filter_fizz_expected.txt'], out_file, 'buzz')
+    assert_files_equal(out_file, fixture_files['filter_buzz_expected.txt'])

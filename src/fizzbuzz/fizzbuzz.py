@@ -1,3 +1,8 @@
+import argparse
+import sys
+from typing import Optional, Sequence
+
+
 def classify(number):
     suffix = ""
     if number % 3 == 0:
@@ -29,3 +34,25 @@ def filter_lines(in_file, out_file, substring):
             for in_line in in_f:
                 if substring in in_line:
                     out_f.write(in_line)
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    parser = argparse.ArgumentParser(description="Classify and filter lines of text files, according to fizzbuzz.")
+    parser.add_argument("in_file", type=str, help="input file to read")
+    parser.add_argument("out_file", type=str, help="output file to write")
+    parser.add_argument("operation", type=str, help="operation to perform", choices=["classify", "filter"])
+    parser.add_argument("--substring", type=str, help="filter substring for lines to keep", default="fizz")
+    args = parser.parse_args(argv)
+
+    if args.operation == "classify":
+        classify_lines(args.in_file, args.out_file)
+    elif args.operation == "filter":
+        filter_lines(args.in_file, args.out_file, args.substring)
+
+    print("OK.")
+
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
