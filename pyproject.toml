@@ -41,6 +41,7 @@ dependencies = [
   "pytest-cov",
 ]
 
+# Run like this: hatch run test:cov
 [tool.hatch.envs.test.scripts]
 cov = 'pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=pipeline_stuff --cov=tests'
 

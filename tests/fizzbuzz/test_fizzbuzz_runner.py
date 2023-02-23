@@ -1,7 +1,7 @@
 from pathlib import Path
 from pytest import fixture, raises
 
-from pipeline_stuff.fizzbuzz import fizzbuzz_runner
+from fizzbuzz import fizzbuzz_runner
 
 @fixture
 def test_files(request):

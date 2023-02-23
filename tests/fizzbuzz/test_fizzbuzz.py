@@ -1,7 +1,7 @@
 from pathlib import Path
 from pytest import fixture
 
-from pipeline_stuff.fizzbuzz import fizzbuzz
+from fizzbuzz import fizzbuzz
 
 divisible_by_3 = set(range(0, 100, 3))
 divisible_by_5 = set(range(0, 100, 5))

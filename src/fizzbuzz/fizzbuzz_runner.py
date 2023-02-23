@@ -2,7 +2,7 @@ import argparse
 import sys
 from typing import Optional, Sequence
 
-from pipeline_stuff.fizzbuzz import fizzbuzz
+from fizzbuzz import fizzbuzz
 
 # python3 -m pipeline_stuff.fizzbuzz.fizzbuzz_runner tests/fizzbuzz/fixture_files/classify_in.txt ./thingy.txt classify
 # python3 -m pipeline_stuff.fizzbuzz.fizzbuzz_runner ./thingy.txt ./thingy2.txt filter --substring fizz
