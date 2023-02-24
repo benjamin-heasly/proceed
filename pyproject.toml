@@ -11,13 +11,13 @@ authors = [
   { name="Ben Heasly", email="benjamin.heasly@gmail.com" }
 ]
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.11"
 classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: The Unlicense (Unlicense)",
   "Operating System :: OS Independent",
 ]
-dependencies = ["docker"]
+dependencies = ["docker", "PyYAML"]
 
 [project.urls]
 "Homepage" = "https://github.com/benjamin-heasly/pipeline-stuff"
