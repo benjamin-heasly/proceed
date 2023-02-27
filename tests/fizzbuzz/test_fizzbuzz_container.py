@@ -63,36 +63,29 @@ def run_fizzbuzz_container(fizzbuzz_image, fixture_path, tmp_path, command):
         fixture_path.as_posix(): {"bind": fixture_path.as_posix(), "mode": "ro"},
     }
     client = docker.from_env()
-    log_bytes = client.containers.run(
-        fizzbuzz_image.id, volumes=volumes, command=command)
+    log_bytes = client.containers.run(fizzbuzz_image.id, volumes=volumes, command=command)
     return log_bytes.decode("utf-8")
 
 
 def test_classify_lines(fizzbuzz_image, fixture_path, fixture_files, tmp_path):
     out_file = Path(tmp_path, 'classify_out.txt')
-    command = [fixture_files['classify_in.txt'].as_posix(),
-               out_file.as_posix(), "classify"]
-    log_str = run_fizzbuzz_container(
-        fizzbuzz_image, fixture_path, tmp_path, command)
+    command = [fixture_files['classify_in.txt'].as_posix(), out_file.as_posix(), "classify"]
+    log_str = run_fizzbuzz_container(fizzbuzz_image, fixture_path, tmp_path, command)
     assert log_str.endswith("OK.\n")
     assert_files_equal(out_file, fixture_files['classify_expected.txt'])
 
 
 def test_filter_fizz_lines(fizzbuzz_image, fixture_path, fixture_files, tmp_path):
     out_file = Path(tmp_path, 'filter_fizz_out.txt')
-    command = [fixture_files['classify_expected.txt'].as_posix(
-    ), out_file.as_posix(), "filter", "--substring", "fizz"]
-    log_str = run_fizzbuzz_container(
-        fizzbuzz_image, fixture_path, tmp_path, command)
+    command = [fixture_files['classify_expected.txt'].as_posix(), out_file.as_posix(), "filter", "--substring", "fizz"]
+    log_str = run_fizzbuzz_container(fizzbuzz_image, fixture_path, tmp_path, command)
     assert log_str.endswith("OK.\n")
     assert_files_equal(out_file, fixture_files['filter_fizz_expected.txt'])
 
 
 def test_filter_buzz_lines(fizzbuzz_image, fixture_path, fixture_files, tmp_path):
     out_file = Path(tmp_path, 'filter_buzz_out.txt')
-    command = [fixture_files['filter_fizz_expected.txt'].as_posix(
-    ), out_file.as_posix(), "filter", "--substring", "buzz"]
-    log_str = run_fizzbuzz_container(
-        fizzbuzz_image, fixture_path, tmp_path, command)
+    command = [fixture_files['filter_fizz_expected.txt'].as_posix(), out_file.as_posix(), "filter", "--substring", "buzz"]
+    log_str = run_fizzbuzz_container(fizzbuzz_image, fixture_path, tmp_path, command)
     assert log_str.endswith("OK.\n")
     assert_files_equal(out_file, fixture_files['filter_buzz_expected.txt'])

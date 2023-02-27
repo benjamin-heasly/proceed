@@ -14,8 +14,26 @@ class Step(YamlData):
 
 
 @dataclass
+class StepResult(YamlData):
+    """The results of running a Step process."""
+
+    exit_code: int = None
+    logs: str = ""
+
+
+@dataclass
 class Pipeline(YamlData):
     """Top-level container for Steps to run and other pipeline configuration."""
+
     version: str = "0.0.1"
 
     steps: list[Step] = field(default_factory=list)
+
+
+@dataclass
+class PipelineResult(YamlData):
+    """The results of running a whole Pipeline."""
+
+    pipeline: Pipeline
+
+    step_results: list[StepResult]
