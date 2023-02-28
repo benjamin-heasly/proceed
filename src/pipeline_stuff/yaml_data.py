@@ -32,8 +32,7 @@ class YamlData():
         """Read an instance of this YamlData class from a dictionary that has the same shape."""
 
         constructor_params = inspect.signature(cls).parameters
-        sanitized_dict = {
-            k: v for k, v in instance_dict.items() if k in constructor_params}
+        sanitized_dict = {k: v for k, v in instance_dict.items() if k in constructor_params}
         instance = cls(**sanitized_dict)
 
         # The instance itself is now a YamlData subclass, but nested YamlData fields may still be dicts.
@@ -42,20 +41,20 @@ class YamlData():
 
     @classmethod
     def field_is_yaml_data(cls, field):
-        # Was this field declared as a YamlData subclass?
+        """Was this field declared as a YamlData subclass?"""
         return (isinstance(field.type, type)
                 and issubclass(field.type, YamlData))
 
     @classmethod
     def field_is_list_of_yaml_data(cls, field):
-        # Was this field declared as a generic list with a YamlData subclass for elements?
+        """Was this field declared as a generic list with a YamlData subclass for elements?"""
         return (isinstance(field.type, GenericAlias)
                 and issubclass(field.type.__origin__, list)
                 and issubclass(YamlData.generic_list_element_type(field), YamlData))
 
     @classmethod
     def generic_list_element_type(cls, field):
-        # Assuming this field is a generic list, what was the declared element type?
+        """Assuming this field is a generic list, what was the declared element type?"""
         return field.type.__args__[0]
 
     def bless_yaml_data_fields(self):
@@ -74,6 +73,5 @@ class YamlData():
                 if isinstance(field_value, list):
                     element_type = YamlData.generic_list_element_type(field)
                     raw_list = getattr(self, field.name)
-                    blessed_list = [element_type.from_dict(
-                        element) for element in raw_list if isinstance(element, dict)]
+                    blessed_list = [element_type.from_dict(e) for e in raw_list if isinstance(e, dict)]
                     setattr(self, field.name, blessed_list)
