@@ -1,7 +1,7 @@
 from pathlib import Path
 import docker
-from pytest import fixture, raises
-from pipeline_stuff.model import Pipeline, Step
+from pytest import fixture
+from pipeline_stuff.model import Pipeline, Step, StepResult
 from pipeline_stuff.docker_runner import run_pipeline, run_step
 
 
@@ -63,47 +63,45 @@ def assert_files_equal(a_file, b_file):
 
 
 def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files):
-    # Locate temp and fixture files to make available inside containers.
-    volumes = {
-        tmp_path.as_posix(): {"bind": "/tmp/fizzbuzz", "mode": "rw"},
-        fixture_path.as_posix(): {"bind": "/var/fizzbuzz", "mode": "ro"},
+    # Pipeline to run three containers from the fizzbuzz:test image created above.
+    pipeline_spec = """
+    version: 0.0.1
+    args:
+        data_dir: ""
+        work_dir: ""
+    volumes:
+        "$data_dir": {"bind": /data, "mode": "ro"}
+        "$work_dir": /work
+    steps:
+        - name: classify
+          image: fizzbuzz:test
+          command: ["/data/classify_in.txt", "/work/classify_out.txt", "classify"]
+        - name: filter fizz
+          image: fizzbuzz:test
+          command: ["/work/classify_out.txt", "/work/filter_fizz_out.txt", "filter", "--substring", "fizz"]
+        - name: filter buzz
+          image: fizzbuzz:test
+          command: ["/work/filter_fizz_out.txt", "/work/filter_buzz_out.txt", "filter", "--substring", "buzz"]
+        """
+    pipeline = Pipeline.from_yaml(pipeline_spec)
+
+    # Dynamically bind the data and temp dirs that we don't know until runtime.
+    args = {
+        "data_dir": fixture_path.as_posix(),
+        "work_dir": tmp_path.as_posix()
     }
 
-    # Create a "fizzbuzz" pipeline of three steps.
-    classify_step = Step(
-        name="classify",
-        image=fizzbuzz_image.tags[0],
-        volumes=volumes,
-        command=["/var/fizzbuzz/classify_in.txt", "/tmp/fizzbuzz/classify_out.txt", "classify"]
-    )
-    filter_fizz_step = Step(
-        name="filter fizz",
-        image=fizzbuzz_image.tags[0],
-        volumes=volumes,
-        command=["/tmp/fizzbuzz/classify_out.txt", "/tmp/fizzbuzz/filter_fizz_out.txt", "filter", "--substring", "fizz"]
-    )
-    filter_buzz_step = Step(
-        name="filter buzz",
-        image=fizzbuzz_image.tags[0],
-        volumes=volumes,
-        command=["/tmp/fizzbuzz/filter_fizz_out.txt", "/tmp/fizzbuzz/filter_buzz_out.txt", "filter", "--substring", "buzz"]
-    )
+    # Each step should report clean exit status and logs.
+    # Step results should use the image's explicit content hash / id, rather than a given alias or tag.
+    pipeline_results = run_pipeline(pipeline, args)
+    expected_step_results = [
+        StepResult(name="classify", image_id=fizzbuzz_image.id, exit_code=0, logs="OK.\n"),
+        StepResult(name="filter fizz", image_id=fizzbuzz_image.id, exit_code=0, logs="OK.\n"),
+        StepResult(name="filter buzz", image_id=fizzbuzz_image.id, exit_code=0, logs="OK.\n")
+    ]
+    assert pipeline_results.results == expected_step_results
 
-    # All steps should return with with happy status and clean logs.
-    pipeline = Pipeline(steps=[classify_step, filter_fizz_step, filter_buzz_step])
-    pipeline_results = run_pipeline(pipeline)
-    assert all(result.exit_code == 0 for result in pipeline_results.step_results)
-    assert all(result.logs.endswith("OK.\n") for result in pipeline_results.step_results)
-
-    # Step results should be named like their original steps.
-    result_names = [result.name for result in pipeline_results.step_results]
-    expected_names = [step.name for step in pipeline.steps]
-    assert result_names == expected_names
-
-    # Step results should use the exact image id, as opposed to any of its tag.
-    assert all(result.image_id == fizzbuzz_image.id for result in pipeline_results.step_results)
-
-    # All steps should have expected side-effects on files processed.
+    # All steps should have expected side-effects of files processed.
     assert_files_equal(Path(tmp_path, "classify_out.txt"), fixture_files['classify_expected.txt'])
     assert_files_equal(Path(tmp_path, "filter_fizz_out.txt"), fixture_files['filter_fizz_expected.txt'])
     assert_files_equal(Path(tmp_path, "filter_buzz_out.txt"), fixture_files['filter_buzz_expected.txt'])

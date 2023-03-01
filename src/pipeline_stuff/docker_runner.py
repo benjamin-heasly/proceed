@@ -1,23 +1,27 @@
+from typing import Union
 import docker
 from pipeline_stuff.model import Pipeline, PipelineResult, Step, StepResult
 
 
-def run_pipeline(original: Pipeline) -> PipelineResult:
-    applied = original.with_args_applied(original.args)
-    step_results = [run_step(step) for step in applied.steps]
+def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResult:
+    combined_args = original.combine_args(args)
+    applied = original.with_args_applied(combined_args)
+    results = [run_step(step, applied.volumes) for step in applied.steps]
     return PipelineResult(
         original=original,
         applied=applied,
-        step_results=step_results
+        results=results
     )
 
 
-def run_step(step: Step) -> StepResult:
+def run_step(step: Step, volumes: dict[str, Union[str, dict[str, str]]] = {}) -> StepResult:
+    combined_volumes = volumes_to_dictionaries({**volumes, **step.volumes})
+    print(combined_volumes)
     client = docker.from_env()
     try:
         log_bytes = client.containers.run(
             step.image,
-            volumes=step.volumes,
+            volumes=combined_volumes,
             command=step.command
         )
         return StepResult(
@@ -34,3 +38,14 @@ def run_step(step: Step) -> StepResult:
             exit_code=container_error.exit_status,
             logs=log_bytes.decode("utf-8")
         )
+
+
+def volumes_to_dictionaries(volumes: dict[str, Union[str, dict[str, str]]], default_mode: str = "rw") -> dict[str, dict[str, str]]:
+    normalized = {}
+    for k in volumes.keys():
+        v = volumes[k]
+        if isinstance(v, str):
+            normalized[k] = {"bind": v, "mode": default_mode}
+        else:
+            normalized[k] = v
+    return normalized

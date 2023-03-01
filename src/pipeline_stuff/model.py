@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Self
+from typing import Any, Self, Union
 from string import Template
 from pipeline_stuff.yaml_data import YamlData
 
@@ -22,7 +22,7 @@ class Step(YamlData):
 
     name: str = ""
     image: str = ""
-    volumes: dict[str, Any] = field(default_factory=dict)
+    volumes: dict[str, Union[str, dict[str, str]]] = field(default_factory=dict)
     command: list[str] = field(default_factory=list)
 
     def with_args_applied(self, args: dict[str, str]) -> Self:
@@ -51,8 +51,18 @@ class Pipeline(YamlData):
 
     version: str = "0.0.1"
     args: dict[str, str] = field(default_factory=dict)
-    volumes: dict[str, Any] = field(default_factory=dict)
+    volumes: dict[str, Union[str, dict[str, str]]] = field(default_factory=dict)
     steps: list[Step] = field(default_factory=list)
+
+    def combine_args(self, args: dict[str, str]) -> dict[str, str]:
+        """Combine given args with self.args, but only accepting keys declared in self.args."""
+        accepted_args = {}
+        for k in self.args.keys():
+            if k in args.keys():
+                accepted_args[k] = args[k]
+            else:
+                accepted_args[k] = self.args[k]
+        return accepted_args
 
     def with_args_applied(self, args: dict[str, str]) -> Self:
         """Construct a new Step, the result of applying given args to string fields of this Step."""
@@ -70,4 +80,4 @@ class PipelineResult(YamlData):
 
     original: Pipeline
     applied: Pipeline
-    step_results: list[StepResult]
+    results: list[StepResult]

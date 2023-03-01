@@ -6,19 +6,19 @@ pipeline_spec = """
     arg_1: one
     arg_2: two
   volumes:
-    dir_shared: /foo/shared
+    /dir_shared: /foo/shared
   steps:
     - name: a
       image: image-a
       volumes:
-        dir_a_1: /foo/a1
-        dir_a_2: /bar/a2
+        /dir_a_1: /foo/a1
+        /dir_a_2: /bar/a2
       command: ["command", "a"]
     - name: b
       image: image-b
       volumes:
-        dir_b_1: {"bind": "/foo/b1", "mode": "rw"}
-        dir_b_2: {"bind": "/bar/b2", "mode": "ro"}
+        /dir_b_1: {"bind": /foo/b1, "mode": "rw"}
+        /dir_b_2: {"bind": /bar/b2, "mode": "ro"}
       command: ["command", "b"]
     """
 
@@ -27,22 +27,22 @@ def test_model_from_yaml():
     pipeline = Pipeline.from_yaml(pipeline_spec)
     assert pipeline.version == "0.0.42"
     assert pipeline.args == {"arg_1": "one", "arg_2": "two"}
-    assert pipeline.volumes == {"dir_shared": "/foo/shared"}
+    assert pipeline.volumes == {"/dir_shared": "/foo/shared"}
 
     assert len(pipeline.steps) == 2
 
     step_a = pipeline.steps[0]
     assert step_a.name == "a"
     assert len(step_a.volumes) == 2
-    assert step_a.volumes["dir_a_1"] == "/foo/a1"
-    assert step_a.volumes["dir_a_2"] == "/bar/a2"
+    assert step_a.volumes["/dir_a_1"] == "/foo/a1"
+    assert step_a.volumes["/dir_a_2"] == "/bar/a2"
     assert step_a.command == ["command", "a"]
 
     step_b = pipeline.steps[1]
     assert step_b.name == "b"
     assert len(step_b.volumes) == 2
-    assert step_b.volumes["dir_b_1"] == {"bind": "/foo/b1", "mode": "rw"}
-    assert step_b.volumes["dir_b_2"] == {"bind": "/bar/b2", "mode": "ro"}
+    assert step_b.volumes["/dir_b_1"] == {"bind": "/foo/b1", "mode": "rw"}
+    assert step_b.volumes["/dir_b_2"] == {"bind": "/bar/b2", "mode": "ro"}
     assert step_b.command == ["command", "b"]
 
 
@@ -58,10 +58,10 @@ def test_yaml_collection_style():
     pipeline_yaml = Pipeline.to_yaml(pipeline)
     # want simple collections on one line, nested collections on multiple lines.
     assert "version: 0.0.42\n" in pipeline_yaml
-    assert "  volumes: {dir_a_1: /foo/a1, dir_a_2: /bar/a2}\n" in pipeline_yaml
+    assert "  volumes: {/dir_a_1: /foo/a1, /dir_a_2: /bar/a2}\n" in pipeline_yaml
     assert "  volumes:\n" in pipeline_yaml
-    assert "    dir_b_1: {bind: /foo/b1, mode: rw}\n" in pipeline_yaml
-    assert "    dir_b_2: {bind: /bar/b2, mode: ro}\n" in pipeline_yaml
+    assert "    /dir_b_1: {bind: /foo/b1, mode: rw}\n" in pipeline_yaml
+    assert "    /dir_b_2: {bind: /bar/b2, mode: ro}\n" in pipeline_yaml
 
 
 def test_apply_args_to_step():
@@ -97,6 +97,25 @@ def test_apply_args_to_step():
     )
     assert step_with_args_applied.name == expected_step.name
     assert step_with_args_applied == expected_step
+
+
+def test_pipeline_accept_declared_args():
+    pipeline = Pipeline(
+        args={
+            "keep_default": "default",
+            "replace": "replace me",
+        }
+    )
+    args = {
+        "replace": "I was replaced",
+        "ignore": "Ignore me"
+    }
+    combined_args = pipeline.combine_args(args)
+    expected_args = {
+        "keep_default": "default",
+        "replace": "I was replaced",
+    }
+    assert combined_args == expected_args
 
 
 def test_apply_args_to_pipeline():
