@@ -120,23 +120,35 @@ def test_pipeline_accept_declared_args():
 
 def test_apply_args_to_pipeline():
     pipeline = Pipeline(
-        version="0.0.1-$ignored",
-        args={"$ignored": "$ignored", "foo": "bar"},
+        version="0.0.$foo",
+        args={
+            "foo": "should go unused",
+            "arg": "$foo",
+            "step_name_1": "should get overridden",
+            "step_name_2": "should get overridden"
+        },
         steps=[
-            Step(name="$name_1"),
-            Step(name="$name_2")
+            Step(name="$step_name_1"),
+            Step(name="$step_name_2")
         ]
     )
     args = {
-        "ignored": "should be unused",
-        "name_1": "first step",
-        "name_2": "second step"
+        "step_name_1": "first step",
+        "step_name_2": "second step"
     }
+
+    # Given args should apply to all steps.
+    # They should not apply to the pipeline's own version or args (these remain $placeholders in this example)
+    # The new pipeline.args should reflect all the declared and given args, combined.
     pipeline_with_args_applied = pipeline.with_args_applied(args)
-    # Pipeline should not try to apply args to version or to the args themselves.
     expected_pipeline = Pipeline(
-        version="0.0.1-$ignored",
-        args={"$ignored": "$ignored", "foo": "bar"},
+        version="0.0.$foo",
+        args={
+            "foo": "should go unused",
+            "arg": "$foo",
+            "step_name_1": "first step",
+            "step_name_2": "second step"
+        },
         steps=[
             Step(name="first step"),
             Step(name="second step")

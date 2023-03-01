@@ -4,13 +4,12 @@ from proceed.model import Pipeline, PipelineResult, Step, StepResult
 
 
 def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResult:
-    combined_args = original.combine_args(args)
-    applied = original.with_args_applied(combined_args)
-    results = [run_step(step, applied.volumes) for step in applied.steps]
+    applied = original.with_args_applied(args)
+    step_results = [run_step(step, applied.volumes) for step in applied.steps]
     return PipelineResult(
         original=original,
         applied=applied,
-        results=results
+        step_results=step_results
     )
 
 
@@ -40,7 +39,8 @@ def run_step(step: Step, volumes: dict[str, Union[str, dict[str, str]]] = {}) ->
         )
 
 
-def volumes_to_dictionaries(volumes: dict[str, Union[str, dict[str, str]]], default_mode: str = "rw") -> dict[str, dict[str, str]]:
+def volumes_to_dictionaries(volumes: dict[str, Union[str, dict[str, str]]],
+                            default_mode: str = "rw") -> dict[str, dict[str, str]]:
     normalized = {}
     for k in volumes.keys():
         v = volumes[k]

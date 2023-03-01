@@ -55,7 +55,7 @@ class Pipeline(YamlData):
     steps: list[Step] = field(default_factory=list)
 
     def combine_args(self, args: dict[str, str]) -> dict[str, str]:
-        """Combine given args with self.args, but only accepting keys declared in self.args."""
+        """Update self.args with given args values, but don't add new keys."""
         accepted_args = {}
         for k in self.args.keys():
             if k in args.keys():
@@ -66,11 +66,12 @@ class Pipeline(YamlData):
 
     def with_args_applied(self, args: dict[str, str]) -> Self:
         """Construct a new Step, the result of applying given args to string fields of this Step."""
+        combined_args = self.combine_args(args)
         return Pipeline(
             version=self.version,
-            args=self.args,
-            volumes=apply_args(self.volumes, args),
-            steps=[step.with_args_applied(args) for step in self.steps]
+            args=combined_args,
+            volumes=apply_args(self.volumes, combined_args),
+            steps=[step.with_args_applied(combined_args) for step in self.steps]
         )
 
 
@@ -80,4 +81,4 @@ class PipelineResult(YamlData):
 
     original: Pipeline
     applied: Pipeline
-    results: list[StepResult]
+    step_results: list[StepResult]

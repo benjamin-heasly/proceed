@@ -23,6 +23,9 @@ dependencies = ["docker", "PyYAML"]
 "Homepage" = "https://github.com/benjamin-heasly/proceed"
 "Bug Tracker" = "https://github.com/benjamin-heasly/proceed/issues"
 
+[project.scripts]
+proceed = "proceed.cli:main"
+
 [tool.pytest.ini_options]
 addopts = [
     "--import-mode=importlib",

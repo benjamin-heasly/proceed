@@ -99,7 +99,7 @@ def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files):
         StepResult(name="filter fizz", image_id=fizzbuzz_image.id, exit_code=0, logs="OK.\n"),
         StepResult(name="filter buzz", image_id=fizzbuzz_image.id, exit_code=0, logs="OK.\n")
     ]
-    assert pipeline_results.results == expected_step_results
+    assert pipeline_results.step_results == expected_step_results
 
     # All steps should have expected side-effects of files processed.
     assert_files_equal(Path(tmp_path, "classify_out.txt"), fixture_files['classify_expected.txt'])
