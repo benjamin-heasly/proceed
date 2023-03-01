@@ -1,2 +1,2 @@
-# pipeline-stuff
-Declare pipelines with YAML and execute/reproduce with Python and Docker.
+# proceed
+Declarative file processing with YAML and containers.

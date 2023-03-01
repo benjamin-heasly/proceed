@@ -1,6 +1,6 @@
 from typing import Union
 import docker
-from pipeline_stuff.model import Pipeline, PipelineResult, Step, StepResult
+from proceed.model import Pipeline, PipelineResult, Step, StepResult
 
 
 def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResult:

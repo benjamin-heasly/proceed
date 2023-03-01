@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pipeline_stuff"
+name = "proceed"
 version = "0.0.1"
 description = "Execute pipelines based on files and containers."
 keywords = []
@@ -20,19 +20,14 @@ classifiers = [
 dependencies = ["docker", "PyYAML"]
 
 [project.urls]
-"Homepage" = "https://github.com/benjamin-heasly/pipeline-stuff"
-"Bug Tracker" = "https://github.com/benjamin-heasly/pipeline-stuff/issues"
+"Homepage" = "https://github.com/benjamin-heasly/proceed"
+"Bug Tracker" = "https://github.com/benjamin-heasly/proceed/issues"
 
 [tool.pytest.ini_options]
 addopts = [
     "--import-mode=importlib",
 ]
 
-# Hatch is a tool to manage Python projects and packaging.
-# https://github.com/pypa/hatch
-# Python packaging is a horrible mess, but maybe Hatch will be a good thing.
-# python -m pip install pipx-in-pipx --user
-# pipx install hatch
 [tool.hatch]
 
 [tool.hatch.envs.test]
@@ -41,9 +36,8 @@ dependencies = [
   "pytest-cov",
 ]
 
-# Run like this: hatch run test:cov
 [tool.hatch.envs.test.scripts]
-cov = 'pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=pipeline_stuff --cov=tests'
+cov = 'pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=proceed --cov=tests'
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -52,4 +46,4 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pipeline_stuff"]
+packages = ["src/proceed"]

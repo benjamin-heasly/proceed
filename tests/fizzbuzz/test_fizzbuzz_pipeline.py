@@ -1,8 +1,8 @@
 from pathlib import Path
 import docker
 from pytest import fixture
-from pipeline_stuff.model import Pipeline, Step, StepResult
-from pipeline_stuff.docker_runner import run_pipeline, run_step
+from proceed.model import Pipeline, Step, StepResult
+from proceed.docker_runner import run_pipeline, run_step
 
 
 @fixture

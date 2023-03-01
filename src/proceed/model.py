@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Self, Union
 from string import Template
-from pipeline_stuff.yaml_data import YamlData
+from proceed.yaml_data import YamlData
 
 
 def apply_args(x: Any, args: dict[str, str]):

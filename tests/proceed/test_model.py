@@ -1,4 +1,4 @@
-from pipeline_stuff.model import Pipeline, Step
+from proceed.model import Pipeline, Step
 
 pipeline_spec = """
   version: 0.0.42
