@@ -1,0 +1,7 @@
+version: 0.0.1
+args:
+  arg_1: foo
+steps:
+  - name: hello
+    image: alpine
+    command: echo "$arg_1"

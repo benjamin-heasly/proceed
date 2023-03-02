@@ -1,7 +1,6 @@
-import sys
 import argparse
 from typing import Optional, Sequence
-from proceed.model import Pipeline, PipelineResult
+from proceed.model import Pipeline
 from proceed.docker_runner import run_pipeline
 
 
@@ -33,17 +32,19 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     print(f"Running pipeline with args: {pipeline_args}")
 
-    result = run_pipeline(pipeline, pipeline_args)
+    pipeline_result = run_pipeline(pipeline, pipeline_args)
 
     print(f"Writing execution record to: {cli_args.record}")
 
     with open(cli_args.record, "w") as record:
-        record.write(result.to_yaml())
+        record.write(pipeline_result.to_yaml())
 
-    print(f"OK.")
-
-    return 0
-
-
-if __name__ == '__main__':
-    sys.exit(main())
+    error_count = sum(step_result.exit_code != 0 for step_result in pipeline_result.step_results)
+    if error_count:
+        print(f"{error_count} steps had nonzero exit codes:")
+        for step_result in pipeline_result.step_results:
+            print(f"{step_result.name} exit code: {step_result.exit_code}")
+        return error_count
+    else:
+        print(f"OK.")
+        return 0

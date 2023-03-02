@@ -57,7 +57,7 @@ class StepResult(YamlData):
     #files_out: str = None
     #files_done: str = None
     #skipped: boolean = False
-
+    #execution start, finish, duration
 
 @dataclass
 class Pipeline(YamlData):
@@ -99,3 +99,4 @@ class PipelineResult(YamlData):
     original: Pipeline
     amended: Pipeline
     step_results: list[StepResult]
+    #execution start, finish, duration

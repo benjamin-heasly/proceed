@@ -1,0 +1,5 @@
+version: 0.0.1
+steps:
+  - name: bad
+    image: alpine
+    command: ls no_such_dir
