@@ -4,38 +4,46 @@ from proceed.model import Pipeline, PipelineResult, Step, StepResult
 
 
 def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResult:
-    applied = original.with_args_applied(args)
-    step_results = [run_step(step, applied.volumes) for step in applied.steps]
+    amended = original.with_args_applied(args)
+    step_results = [run_step(step, amended.volumes) for step in amended.steps]
     return PipelineResult(
         original=original,
-        applied=applied,
+        amended=amended,
         step_results=step_results
     )
 
 
 def run_step(step: Step, volumes: dict[str, Union[str, dict[str, str]]] = {}) -> StepResult:
     combined_volumes = volumes_to_dictionaries({**volumes, **step.volumes})
-    print(combined_volumes)
+
     client = docker.from_env()
     try:
-        log_bytes = client.containers.run(
+        container = client.containers.run(
             step.image,
+            command=step.command,
             volumes=combined_volumes,
-            command=step.command
+            auto_remove=False,
+            remove=False,
+            detach=True
         )
+        run_results = container.wait()
+
+        # Retrieve container logs before removing the container.
+        # The sdk has a race condition around this, otherwise we could just do:
+        # log_bytes = client.containers.run( ... detach=False, remove=True)
+        logs = container.logs().decode("utf-8")
+        container.remove()
         return StepResult(
             name=step.name,
-            image_id=client.images.get(step.image).id,
-            exit_code=0,
-            logs=log_bytes.decode("utf-8")
+            image_id=container.image.id,
+            exit_code=run_results['StatusCode'],
+            logs=logs
         )
 
-    except docker.errors.ContainerError as container_error:
-        log_bytes = container_error.container.logs()
+    except docker.errors.ImageNotFound as image_error:
         return StepResult(
             name=step.name,
-            exit_code=container_error.exit_status,
-            logs=log_bytes.decode("utf-8")
+            logs=image_error.value.explanation
         )
 
 

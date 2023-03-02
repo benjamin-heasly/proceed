@@ -39,7 +39,10 @@ def assert_files_equal(a_file, b_file):
 
 def test_help(fizzbuzz_image):
     client = docker.from_env()
-    log_bytes = client.containers.run(fizzbuzz_image.id, command="--help")
+    container = client.containers.run(fizzbuzz_image.id, command="--help", detach=True)
+    container.wait()
+    log_bytes = container.logs()
+    container.remove()
     log_str = log_bytes.decode("utf-8")
     assert log_str.startswith("usage:")
     assert "show this help message and exit" in log_str
@@ -51,6 +54,7 @@ def test_invalid_input(fizzbuzz_image):
         client.containers.run(fizzbuzz_image.id, command="invalid")
     assert exception_info.value.exit_status == 2
     log_bytes = exception_info.value.container.logs()
+    exception_info.value.container.remove()
     log_str = log_bytes.decode("utf-8")
     assert log_str.startswith("usage:")
     assert "the following arguments are required" in log_str
@@ -63,7 +67,10 @@ def run_fizzbuzz_container(fizzbuzz_image, fixture_path, tmp_path, command):
         fixture_path.as_posix(): {"bind": fixture_path.as_posix(), "mode": "ro"},
     }
     client = docker.from_env()
-    log_bytes = client.containers.run(fizzbuzz_image.id, volumes=volumes, command=command)
+    container = client.containers.run(fizzbuzz_image.id, command=command, volumes=volumes, detach=True)
+    container.wait()
+    log_bytes = container.logs()
+    container.remove()
     return log_bytes.decode("utf-8")
 
 

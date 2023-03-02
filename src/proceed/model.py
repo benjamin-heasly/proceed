@@ -23,6 +23,16 @@ class Step(YamlData):
     name: str = ""
     image: str = ""
     volumes: dict[str, Union[str, dict[str, str]]] = field(default_factory=dict)
+    #match_in: str = None
+    #match_out: str = None
+    #match_done: str = None
+
+    #working_dir: str = None
+    #gpus: str = None
+
+    #environment: dict[str, str] = field(default_factory=dict)
+    #mac_address: str = None
+    #network_mode: str = None
     command: list[str] = field(default_factory=list)
 
     def with_args_applied(self, args: dict[str, str]) -> Self:
@@ -40,9 +50,13 @@ class StepResult(YamlData):
     """The results of running a Step process."""
 
     name: str = ""
-    image_id: str = ""
+    image_id: str = None
     exit_code: int = None
-    logs: str = ""
+    logs: str = None
+    #files_in: str = None
+    #files_out: str = None
+    #files_done: str = None
+    #skipped: boolean = False
 
 
 @dataclass
@@ -52,6 +66,9 @@ class Pipeline(YamlData):
     version: str = "0.0.1"
     args: dict[str, str] = field(default_factory=dict)
     volumes: dict[str, Union[str, dict[str, str]]] = field(default_factory=dict)
+    #environment: dict[str, str] = field(default_factory=dict)
+    #mac_address: str = None
+    #network_mode: str = None
     steps: list[Step] = field(default_factory=list)
 
     def combine_args(self, args: dict[str, str]) -> dict[str, str]:
@@ -80,5 +97,5 @@ class PipelineResult(YamlData):
     """The results of running a whole Pipeline."""
 
     original: Pipeline
-    applied: Pipeline
+    amended: Pipeline
     step_results: list[StepResult]
