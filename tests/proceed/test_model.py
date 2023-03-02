@@ -1,4 +1,4 @@
-from proceed.model import Pipeline, Step
+from proceed.model import apply_args, Pipeline, Step
 
 pipeline_spec = """
   version: 0.0.42
@@ -156,4 +156,68 @@ def test_apply_args_to_pipeline():
     )
     assert pipeline_with_args_applied == expected_pipeline
 
-# test_apply_args
+
+def test_apply_args_to_string():
+    original = "this is a template foo${variable}baz"
+    args = {
+        "variable": "bar"
+    }
+    amended = apply_args(original, args)
+    assert amended == "this is a template foobarbaz"
+
+
+def test_apply_args_to_dictionary():
+    original = {"$variable": "the key for this value is $variable"}
+    args = {
+        "variable": "bar"
+    }
+    amended = apply_args(original, args)
+    assert amended == {"bar": "the key for this value is bar"}
+
+
+def test_apply_args_to_list():
+    original = ["$variable", "constant", "$variable"]
+    args = {
+        "variable": "bar"
+    }
+    amended = apply_args(original, args)
+    assert amended == ["bar", "constant", "bar"]
+
+
+def test_apply_args_to_other():
+    # Maybe we'll want to support sets some day.
+    # For now, just use set as a no-op example.
+    original = set("$variable")
+    args = {
+        "variable": "bar"
+    }
+    amended = apply_args(original, args)
+    assert amended == original
+
+
+def test_apply_args_recursively():
+    original = {
+        "string": "this is a template foo${variable}baz",
+        "dictionary": {
+            "$variable": "the key for this value is $variable",
+            "nested list": ["$variable", "constant", "$variable"]
+        },
+        "list": ["$variable", "constant", "$variable"],
+        "nested dictionary": [{"$variable": "the key for this value is $variable"}],
+        "other": set("$variable")
+    }
+    args = {
+        "variable": "bar"
+    }
+    amended = apply_args(original, args)
+    expected = original = {
+        "string": "this is a template foobarbaz",
+        "dictionary": {
+            "bar": "the key for this value is bar",
+            "nested list": ["bar", "constant", "bar"]
+        },
+        "list": ["bar", "constant", "bar"],
+        "nested dictionary": [{"bar": "the key for this value is bar"}],
+        "other": set("$variable")
+    }
+    assert amended == expected
