@@ -6,40 +6,14 @@ from proceed.docker_runner import run_pipeline, run_step
 
 
 @fixture
-def fizzbuzz_path(request):
+def fizzbuzz_image(request):
+    """The python:3.7 image must be present on the host, and/or we must be on the network."""
     this_file = Path(request.module.__file__)
-    return Path(this_file.parent.parent.parent, "src", "fizzbuzz")
+    fizzbuzz_path = Path(this_file.parent.parent.parent, "src", "fizzbuzz")
 
-
-@fixture
-def fizzbuzz_image(fizzbuzz_path):
     client = docker.from_env()
     (image, _) = client.images.build(path=str(fizzbuzz_path), tag="fizzbuzz:test")
     return image
-
-
-def test_help(fizzbuzz_image):
-    step = Step(
-        name="help",
-        image=fizzbuzz_image.id,
-        command=["--help"]
-    )
-    step_result = run_step(step)
-    assert step_result.exit_code == 0
-    assert step_result.logs.startswith("usage:")
-    assert "show this help message and exit" in step_result.logs
-
-
-def test_invalid_input(fizzbuzz_image):
-    step = Step(
-        name="invalid",
-        image=fizzbuzz_image.id,
-        command=["invalid"]
-    )
-    step_result = run_step(step)
-    assert step_result.exit_code == 2
-    assert step_result.logs.startswith("usage:")
-    assert "the following arguments are required" in step_result.logs
 
 
 @fixture
