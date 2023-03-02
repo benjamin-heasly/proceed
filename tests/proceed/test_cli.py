@@ -8,7 +8,7 @@ from proceed.model import Pipeline, PipelineResult, StepResult
 def alpine_image():
     """The alpine image must be present on the host, and/or we must be on the network."""
     client = docker.from_env()
-    image = client.images.get("alpine")
+    image = client.images.pull("alpine")
     return image
 
 
