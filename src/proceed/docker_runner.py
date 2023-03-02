@@ -40,10 +40,16 @@ def run_step(step: Step, volumes: dict[str, Union[str, dict[str, str]]] = {}) ->
             logs=logs
         )
 
-    except docker.errors.ImageNotFound as image_error:
+    except docker.errors.ImageNotFound as image_not_found_error:
         return StepResult(
             name=step.name,
-            logs=image_error.value.explanation
+            logs=image_not_found_error.explanation
+        )
+
+    except docker.errors.APIError as api_error:
+        return StepResult(
+            name=step.name,
+            logs=api_error.explanation
         )
 
 
