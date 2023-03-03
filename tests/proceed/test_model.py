@@ -5,6 +5,9 @@ pipeline_spec = """
   args:
     arg_1: one
     arg_2: two
+  environment:
+    env_1: one
+    env_2: two
   volumes:
     /dir_shared: /foo/shared
   steps:
@@ -13,10 +16,14 @@ pipeline_spec = """
       volumes:
         /dir_a_1: /foo/a1
         /dir_a_2: /bar/a2
+      environment:
+        env_3: three-a
       command: ["command", "a"]
       working_dir: /foo/a1
     - name: b
       image: image-b
+      environment:
+        env_3: three-b
       volumes:
         /dir_b_1: {"bind": /foo/b1, "mode": "rw"}
         /dir_b_2: {"bind": /bar/b2, "mode": "ro"}
@@ -29,11 +36,13 @@ def test_model_from_yaml():
     expected_pipeline = Pipeline(
         version="0.0.42",
         args={"arg_1": "one", "arg_2": "two", },
+        environment={"env_1": "one", "env_2": "two"},
         volumes={"/dir_shared": "/foo/shared"},
         steps=[
             Step(
                 name="a",
                 image="image-a",
+                environment={"env_3": "three-a"},
                 volumes={"/dir_a_1": "/foo/a1", "/dir_a_2": "/bar/a2"},
                 command=["command", "a"],
                 working_dir="/foo/a1"
@@ -41,6 +50,7 @@ def test_model_from_yaml():
             Step(
                 name="b",
                 image="image-b",
+                environment={"env_3": "three-b"},
                 volumes={"/dir_b_1": {"bind": "/foo/b1", "mode": "rw"}, "/dir_b_2": {"bind": "/bar/b2", "mode": "ro"}},
                 command=["command", "b"]
             ),

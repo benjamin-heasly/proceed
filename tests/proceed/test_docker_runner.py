@@ -57,6 +57,19 @@ def test_step_working_dir(alpine_image):
     assert step_result.logs == "/home\n"
 
 
+def test_step_environment(alpine_image):
+    step = Step(
+        name="environment", environment={"ENV_VAR": "foo"},
+        image=alpine_image.tags[0],
+        command=["/bin/sh", "-c", "echo $ENV_VAR"]
+    )
+    step_result = run_step(step)
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+    assert step_result.exit_code == 0
+    assert step_result.logs == "foo\n"
+
+
 def test_pipeline_with_args(alpine_image):
     pipeline = Pipeline(
         args={
@@ -94,7 +107,43 @@ def test_pipeline_with_args(alpine_image):
     )
     assert pipeline_result == expected_result
 
-    # Timing details are not used in comparisons above, that would be too brittle.
+    # Timing details are not used in comparisons above -- timestamps are too brittle.
     # But we do want to check that timing results got filled in.
+    assert pipeline_result.timing.is_complete()
+    assert all([step_result.timing.is_complete() for step_result in pipeline_result.step_results])
+
+
+def test_pipeline_with_environment(alpine_image):
+    pipeline = Pipeline(
+        environment={
+            "env_1": "one",
+            "env_2": "two"
+        },
+        steps=[
+            Step(
+                name="step 1",
+                image=alpine_image.tags[0],
+                environment={"env_2": "two-a", "env_3": "three-a"},
+                command=["/bin/sh", "-c", "echo $env_1 $env_2 $env_3"]
+            ),
+            Step(
+                name="step 2",
+                image=alpine_image.tags[0],
+                environment={"env_2": "two-b", "env_3": "three-b"},
+                command=["/bin/sh", "-c", "echo $env_1 $env_2 $env_3"]
+            )
+        ]
+    )
+    pipeline_result = run_pipeline(pipeline)
+    expected_step_results = [
+        StepResult(name="step 1", image_id=alpine_image.id, exit_code=0, logs="one two-a three-a\n"),
+        StepResult(name="step 2", image_id=alpine_image.id, exit_code=0, logs="one two-b three-b\n")
+    ]
+    expected_result = PipelineResult(
+        original=pipeline,
+        amended=pipeline,
+        step_results=expected_step_results
+    )
+    assert pipeline_result == expected_result
     assert pipeline_result.timing.is_complete()
     assert all([step_result.timing.is_complete() for step_result in pipeline_result.step_results])

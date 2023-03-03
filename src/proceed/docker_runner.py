@@ -8,7 +8,7 @@ def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResul
     start = datetime.now(timezone.utc)
 
     amended = original.with_args_applied(args)
-    step_results = [run_step(step, amended.volumes) for step in amended.steps]
+    step_results = [run_step(step, environment=amended.environment, volumes=amended.volumes) for step in amended.steps]
 
     finish = datetime.now(timezone.utc)
     duration = finish - start
@@ -21,9 +21,13 @@ def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResul
     )
 
 
-def run_step(step: Step, volumes: dict[str, Union[str, dict[str, str]]] = {}) -> StepResult:
+def run_step(step: Step,
+             environment: dict[str, str] = {},
+             volumes: dict[str, Union[str, dict[str, str]]] = {}
+             ) -> StepResult:
     start = datetime.now(timezone.utc)
 
+    combined_environment = {**environment, **step.environment}
     combined_volumes = volumes_to_dictionaries({**volumes, **step.volumes})
 
     client = docker.from_env()
@@ -31,6 +35,7 @@ def run_step(step: Step, volumes: dict[str, Union[str, dict[str, str]]] = {}) ->
         container = client.containers.run(
             step.image,
             command=step.command,
+            environment=combined_environment,
             volumes=combined_volumes,
             working_dir=step.working_dir,
             auto_remove=False,
