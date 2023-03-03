@@ -13,6 +13,7 @@ def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResul
             step,
             environment=amended.environment,
             network_mode=amended.network_mode,
+            mac_address=amended.mac_address,
             volumes=amended.volumes
         )
         for step in amended.steps
@@ -32,12 +33,14 @@ def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResul
 def run_step(step: Step,
              environment: dict[str, str] = {},
              network_mode: str = None,
+             mac_address: str = None,
              volumes: dict[str, Union[str, dict[str, str]]] = {}
              ) -> StepResult:
     start = datetime.now(timezone.utc)
 
     combined_environment = {**environment, **step.environment}
     effective_network_mode = step.network_mode or network_mode
+    effective_mac_address = step.mac_address or mac_address
     combined_volumes = volumes_to_dictionaries({**volumes, **step.volumes})
 
     client = docker.from_env()
@@ -47,6 +50,7 @@ def run_step(step: Step,
             command=step.command,
             environment=combined_environment,
             network_mode=effective_network_mode,
+            mac_address=effective_mac_address,
             volumes=combined_volumes,
             working_dir=step.working_dir,
             auto_remove=False,

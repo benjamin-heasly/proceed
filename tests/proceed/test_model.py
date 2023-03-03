@@ -9,6 +9,7 @@ pipeline_spec = """
     env_1: one
     env_2: two
   network_mode: none
+  mac_address: "11:22:33:44:55:66"
   volumes:
     /dir_shared: /foo/shared
   steps:
@@ -20,6 +21,7 @@ pipeline_spec = """
       environment:
         env_3: three-a
       network_mode: host
+      mac_address: "aa:bb:cc:dd:ee:ff"
       command: ["command", "a"]
       working_dir: /foo/a1
     - name: b
@@ -40,6 +42,7 @@ def test_model_from_yaml():
         args={"arg_1": "one", "arg_2": "two", },
         environment={"env_1": "one", "env_2": "two"},
         network_mode="none",
+        mac_address="11:22:33:44:55:66",
         volumes={"/dir_shared": "/foo/shared"},
         steps=[
             Step(
@@ -47,6 +50,7 @@ def test_model_from_yaml():
                 image="image-a",
                 environment={"env_3": "three-a"},
                 network_mode="host",
+                mac_address="aa:bb:cc:dd:ee:ff",
                 volumes={"/dir_a_1": "/foo/a1", "/dir_a_2": "/bar/a2"},
                 command=["command", "a"],
                 working_dir="/foo/a1"

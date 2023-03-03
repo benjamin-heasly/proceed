@@ -99,6 +99,20 @@ def test_step_network_mode_bridge(alpine_image):
     assert "eth0" in step_result.logs
 
 
+def test_step_mac_address(alpine_image):
+    step = Step(
+        name="mac address",
+        mac_address="aa:bb:cc:dd:ee:ff",
+        image=alpine_image.tags[0],
+        command=["ifconfig"]
+    )
+    step_result = run_step(step)
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+    assert step_result.exit_code == 0
+    assert "HWaddr AA:BB:CC:DD:EE:FF" in step_result.logs
+
+
 def test_pipeline_with_args(alpine_image):
     pipeline = Pipeline(
         args={
@@ -176,3 +190,39 @@ def test_pipeline_with_environment(alpine_image):
     assert pipeline_result == expected_result
     assert pipeline_result.timing.is_complete()
     assert all([step_result.timing.is_complete() for step_result in pipeline_result.step_results])
+
+
+def test_pipeline_with_network_config(alpine_image):
+    pipeline = Pipeline(
+        network_mode="none",
+        mac_address="11:22:33:44:55:66",
+        steps=[
+            Step(
+                name="step 1",
+                image=alpine_image.tags[0],
+                network_mode="bridge",
+                mac_address="aa:bb:cc:dd:ee:ff",
+                command=["ifconfig"]
+            ),
+            Step(
+                name="step 2",
+                image=alpine_image.tags[0],
+                command=["ifconfig"]
+            )
+        ]
+    )
+    pipeline_result = run_pipeline(pipeline)
+
+    # First step should override the pipeline's network config.
+    assert pipeline_result.step_results[0].name == pipeline.steps[0].name
+    assert pipeline_result.step_results[0].image_id == alpine_image.id
+    assert pipeline_result.step_results[0].exit_code == 0
+    assert "eth0" in pipeline_result.step_results[0].logs
+    assert "HWaddr AA:BB:CC:DD:EE:FF" in pipeline_result.step_results[0].logs
+
+    # Second step should inherit the pipeline's network config.
+    assert pipeline_result.step_results[1].name == pipeline.steps[1].name
+    assert pipeline_result.step_results[1].image_id == alpine_image.id
+    assert pipeline_result.step_results[1].exit_code == 0
+    assert "eth0" not in pipeline_result.step_results[1].logs
+    assert "HWaddr" not in pipeline_result.step_results[1].logs

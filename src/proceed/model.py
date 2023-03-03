@@ -32,7 +32,7 @@ class Step(YamlData):
     #gpus: str = None
 
     environment: dict[str, str] = field(default_factory=dict)
-    #mac_address: str = None
+    mac_address: str = None
     network_mode: str = None
     command: list[str] = field(default_factory=list)
 
@@ -42,6 +42,8 @@ class Step(YamlData):
             name=apply_args(self.name, args),
             image=apply_args(self.image, args),
             environment=apply_args(self.environment, args),
+            network_mode=apply_args(self.network_mode, args),
+            mac_address=apply_args(self.mac_address, args),
             volumes=apply_args(self.volumes, args),
             command=apply_args(self.command, args)
         )
@@ -82,7 +84,7 @@ class Pipeline(YamlData):
     args: dict[str, str] = field(default_factory=dict)
     volumes: dict[str, Union[str, dict[str, str]]] = field(default_factory=dict)
     environment: dict[str, str] = field(default_factory=dict)
-    #mac_address: str = None
+    mac_address: str = None
     network_mode: str = None
     steps: list[Step] = field(default_factory=list)
 
@@ -103,6 +105,8 @@ class Pipeline(YamlData):
             version=self.version,
             args=combined_args,
             environment=apply_args(self.environment, args),
+            network_mode=apply_args(self.network_mode, args),
+            mac_address=apply_args(self.mac_address, args),
             volumes=apply_args(self.volumes, combined_args),
             steps=[step.with_args_applied(combined_args) for step in self.steps]
         )
