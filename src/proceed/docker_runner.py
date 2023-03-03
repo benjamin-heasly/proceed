@@ -43,12 +43,17 @@ def run_step(step: Step,
     effective_mac_address = step.mac_address or mac_address
     combined_volumes = volumes_to_dictionaries({**volumes, **step.volumes})
 
+    device_requests = []
+    if step.gpus:
+        device_requests.append(docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]]))
+
     client = docker.from_env()
     try:
         container = client.containers.run(
             step.image,
             command=step.command,
             environment=combined_environment,
+            device_requests=device_requests,
             network_mode=effective_network_mode,
             mac_address=effective_mac_address,
             volumes=combined_volumes,

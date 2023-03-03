@@ -22,6 +22,7 @@ class Step(YamlData):
 
     name: str = ""
     image: str = ""
+    command: list[str] = field(default_factory=list)
 
     volumes: dict[str, Union[str, dict[str, str]]] = field(default_factory=dict)
     working_dir: str = None
@@ -29,24 +30,27 @@ class Step(YamlData):
     #match_out: str = None
     #match_done: str = None
 
-    #gpus: str = None
-
     environment: dict[str, str] = field(default_factory=dict)
-    mac_address: str = None
+    gpus: bool = False
+
     network_mode: str = None
-    command: list[str] = field(default_factory=list)
+    mac_address: str = None
 
     def with_args_applied(self, args: dict[str, str]) -> Self:
         """Construct a new Step, the result of applying given args to string fields of this Step."""
         return Step(
             name=apply_args(self.name, args),
             image=apply_args(self.image, args),
+            command=apply_args(self.command, args),
+            volumes=apply_args(self.volumes, args),
+            working_dir=apply_args(self.working_dir, args),
             environment=apply_args(self.environment, args),
+            gpus=apply_args(self.gpus, args),
             network_mode=apply_args(self.network_mode, args),
             mac_address=apply_args(self.mac_address, args),
-            volumes=apply_args(self.volumes, args),
-            command=apply_args(self.command, args)
         )
+
+    # merge with another step (eg defaults) and return an "effectie" step
 
 
 @dataclass
@@ -82,11 +86,13 @@ class Pipeline(YamlData):
 
     version: str = "0.0.1"
     args: dict[str, str] = field(default_factory=dict)
-    volumes: dict[str, Union[str, dict[str, str]]] = field(default_factory=dict)
-    environment: dict[str, str] = field(default_factory=dict)
-    mac_address: str = None
-    network_mode: str = None
     steps: list[Step] = field(default_factory=list)
+
+    # Refactor step-related attributes to a default instance of Step?
+    environment: dict[str, str] = field(default_factory=dict)
+    volumes: dict[str, Union[str, dict[str, str]]] = field(default_factory=dict)
+    network_mode: str = None
+    mac_address: str = None
 
     def combine_args(self, args: dict[str, str]) -> dict[str, str]:
         """Update self.args with given args values, but don't add new keys."""
@@ -104,11 +110,11 @@ class Pipeline(YamlData):
         return Pipeline(
             version=self.version,
             args=combined_args,
+            steps=[step.with_args_applied(combined_args) for step in self.steps],
             environment=apply_args(self.environment, args),
+            volumes=apply_args(self.volumes, combined_args),
             network_mode=apply_args(self.network_mode, args),
             mac_address=apply_args(self.mac_address, args),
-            volumes=apply_args(self.volumes, combined_args),
-            steps=[step.with_args_applied(combined_args) for step in self.steps]
         )
 
 

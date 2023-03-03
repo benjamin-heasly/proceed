@@ -28,6 +28,7 @@ pipeline_spec = """
       image: image-b
       environment:
         env_3: three-b
+      gpus: True
       volumes:
         /dir_b_1: {"bind": /foo/b1, "mode": "rw"}
         /dir_b_2: {"bind": /bar/b2, "mode": "ro"}
@@ -59,6 +60,7 @@ def test_model_from_yaml():
                 name="b",
                 image="image-b",
                 environment={"env_3": "three-b"},
+                gpus=True,
                 volumes={"/dir_b_1": {"bind": "/foo/b1", "mode": "rw"}, "/dir_b_2": {"bind": "/bar/b2", "mode": "ro"}},
                 command=["command", "b"]
             ),
