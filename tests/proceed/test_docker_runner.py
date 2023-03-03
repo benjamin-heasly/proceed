@@ -84,3 +84,8 @@ def test_pipeline_with_args(alpine_image):
         step_results=expected_step_results
     )
     assert pipeline_result == expected_result
+
+    # Timing details are not used in comparisons above, that would be too brittle.
+    # But we do want to check that timing results got filled in.
+    assert pipeline_result.timing.is_complete()
+    assert all([step_result.timing.is_complete() for step_result in pipeline_result.step_results])

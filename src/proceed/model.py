@@ -46,6 +46,18 @@ class Step(YamlData):
 
 
 @dataclass
+class Timing(YamlData):
+    """Keep track of a start time, an end time, and the duration."""
+
+    start: str = None
+    finish: str = None
+    duration: float = 0.0
+
+    def is_complete(self):
+        return self.start is not None and self.finish is not None and self.duration > 0
+
+
+@dataclass
 class StepResult(YamlData):
     """The results of running a Step process."""
 
@@ -53,11 +65,12 @@ class StepResult(YamlData):
     image_id: str = None
     exit_code: int = None
     logs: str = None
+    timing: Timing = field(compare=False, default=None)
     #files_in: str = None
     #files_out: str = None
     #files_done: str = None
     #skipped: boolean = False
-    #execution start, finish, duration
+
 
 @dataclass
 class Pipeline(YamlData):
@@ -99,4 +112,4 @@ class PipelineResult(YamlData):
     original: Pipeline
     amended: Pipeline
     step_results: list[StepResult]
-    #execution start, finish, duration
+    timing: Timing = field(compare=False, default=None)
