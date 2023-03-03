@@ -14,6 +14,7 @@ pipeline_spec = """
         /dir_a_1: /foo/a1
         /dir_a_2: /bar/a2
       command: ["command", "a"]
+      working_dir: /foo/a1
     - name: b
       image: image-b
       volumes:
@@ -25,25 +26,27 @@ pipeline_spec = """
 
 def test_model_from_yaml():
     pipeline = Pipeline.from_yaml(pipeline_spec)
-    assert pipeline.version == "0.0.42"
-    assert pipeline.args == {"arg_1": "one", "arg_2": "two"}
-    assert pipeline.volumes == {"/dir_shared": "/foo/shared"}
-
-    assert len(pipeline.steps) == 2
-
-    step_a = pipeline.steps[0]
-    assert step_a.name == "a"
-    assert len(step_a.volumes) == 2
-    assert step_a.volumes["/dir_a_1"] == "/foo/a1"
-    assert step_a.volumes["/dir_a_2"] == "/bar/a2"
-    assert step_a.command == ["command", "a"]
-
-    step_b = pipeline.steps[1]
-    assert step_b.name == "b"
-    assert len(step_b.volumes) == 2
-    assert step_b.volumes["/dir_b_1"] == {"bind": "/foo/b1", "mode": "rw"}
-    assert step_b.volumes["/dir_b_2"] == {"bind": "/bar/b2", "mode": "ro"}
-    assert step_b.command == ["command", "b"]
+    expected_pipeline = Pipeline(
+        version="0.0.42",
+        args={"arg_1": "one", "arg_2": "two", },
+        volumes={"/dir_shared": "/foo/shared"},
+        steps=[
+            Step(
+                name="a",
+                image="image-a",
+                volumes={"/dir_a_1": "/foo/a1", "/dir_a_2": "/bar/a2"},
+                command=["command", "a"],
+                working_dir="/foo/a1"
+            ),
+            Step(
+                name="b",
+                image="image-b",
+                volumes={"/dir_b_1": {"bind": "/foo/b1", "mode": "rw"}, "/dir_b_2": {"bind": "/bar/b2", "mode": "ro"}},
+                command=["command", "b"]
+            ),
+        ]
+    )
+    assert pipeline == expected_pipeline
 
 
 def test_model_round_trip():

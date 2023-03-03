@@ -48,6 +48,15 @@ def test_step_command_success(alpine_image):
     assert "hello to you" in step_result.logs
 
 
+def test_step_working_dir(alpine_image):
+    step = Step(name="working dir", working_dir="/home", image=alpine_image.tags[0], command="pwd")
+    step_result = run_step(step)
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+    assert step_result.exit_code == 0
+    assert step_result.logs == "/home\n"
+
+
 def test_pipeline_with_args(alpine_image):
     pipeline = Pipeline(
         args={

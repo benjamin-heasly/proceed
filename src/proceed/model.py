@@ -22,12 +22,13 @@ class Step(YamlData):
 
     name: str = ""
     image: str = ""
+
     volumes: dict[str, Union[str, dict[str, str]]] = field(default_factory=dict)
+    working_dir: str = None
     #match_in: str = None
     #match_out: str = None
     #match_done: str = None
 
-    #working_dir: str = None
     #gpus: str = None
 
     #environment: dict[str, str] = field(default_factory=dict)

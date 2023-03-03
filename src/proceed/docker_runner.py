@@ -32,6 +32,7 @@ def run_step(step: Step, volumes: dict[str, Union[str, dict[str, str]]] = {}) ->
             step.image,
             command=step.command,
             volumes=combined_volumes,
+            working_dir=step.working_dir,
             auto_remove=False,
             remove=False,
             detach=True
