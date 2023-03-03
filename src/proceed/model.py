@@ -33,7 +33,7 @@ class Step(YamlData):
 
     environment: dict[str, str] = field(default_factory=dict)
     #mac_address: str = None
-    #network_mode: str = None
+    network_mode: str = None
     command: list[str] = field(default_factory=list)
 
     def with_args_applied(self, args: dict[str, str]) -> Self:
@@ -83,7 +83,7 @@ class Pipeline(YamlData):
     volumes: dict[str, Union[str, dict[str, str]]] = field(default_factory=dict)
     environment: dict[str, str] = field(default_factory=dict)
     #mac_address: str = None
-    #network_mode: str = None
+    network_mode: str = None
     steps: list[Step] = field(default_factory=list)
 
     def combine_args(self, args: dict[str, str]) -> dict[str, str]:

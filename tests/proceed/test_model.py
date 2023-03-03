@@ -8,6 +8,7 @@ pipeline_spec = """
   environment:
     env_1: one
     env_2: two
+  network_mode: none
   volumes:
     /dir_shared: /foo/shared
   steps:
@@ -18,6 +19,7 @@ pipeline_spec = """
         /dir_a_2: /bar/a2
       environment:
         env_3: three-a
+      network_mode: host
       command: ["command", "a"]
       working_dir: /foo/a1
     - name: b
@@ -37,12 +39,14 @@ def test_model_from_yaml():
         version="0.0.42",
         args={"arg_1": "one", "arg_2": "two", },
         environment={"env_1": "one", "env_2": "two"},
+        network_mode="none",
         volumes={"/dir_shared": "/foo/shared"},
         steps=[
             Step(
                 name="a",
                 image="image-a",
                 environment={"env_3": "three-a"},
+                network_mode="host",
                 volumes={"/dir_a_1": "/foo/a1", "/dir_a_2": "/bar/a2"},
                 command=["command", "a"],
                 working_dir="/foo/a1"

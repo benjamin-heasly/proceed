@@ -59,7 +59,8 @@ def test_step_working_dir(alpine_image):
 
 def test_step_environment(alpine_image):
     step = Step(
-        name="environment", environment={"ENV_VAR": "foo"},
+        name="environment",
+        environment={"ENV_VAR": "foo"},
         image=alpine_image.tags[0],
         command=["/bin/sh", "-c", "echo $ENV_VAR"]
     )
@@ -68,6 +69,34 @@ def test_step_environment(alpine_image):
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
     assert step_result.logs == "foo\n"
+
+
+def test_step_network_mode_none(alpine_image):
+    step = Step(
+        name="network mode none",
+        network_mode="none",
+        image=alpine_image.tags[0],
+        command=["ifconfig"]
+    )
+    step_result = run_step(step)
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+    assert step_result.exit_code == 0
+    assert "eth0" not in step_result.logs
+
+
+def test_step_network_mode_bridge(alpine_image):
+    step = Step(
+        name="network mode bridge",
+        network_mode="bridge",
+        image=alpine_image.tags[0],
+        command=["ifconfig"]
+    )
+    step_result = run_step(step)
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+    assert step_result.exit_code == 0
+    assert "eth0" in step_result.logs
 
 
 def test_pipeline_with_args(alpine_image):
