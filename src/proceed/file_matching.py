@@ -1,6 +1,20 @@
 from pathlib import Path
 import hashlib
 
+
+def match_all(dirs: list[str], glob_patterns: list[str])-> dict[str, dict[str, str]]:
+    """Search each given dir using each given "glob" pattern, return matched files, with content digests, per dir."""
+    matches = {}
+    for dir in dirs:
+        dir_matches = {}
+        for glob_pattern in glob_patterns:
+            dir_glob_matches = match_files(dir, glob_pattern)
+            dir_matches.update(dir_glob_matches)
+        if dir_matches:
+            matches[dir] = dir_matches
+    return matches
+
+
 def match_files(dir: str, glob_pattern: str) -> dict[str, str]:
     """Search the given dir using the given "glob" pattern, return matched files with their content digests."""
     matches = Path(dir).glob(glob_pattern)

@@ -2,14 +2,14 @@ from typing import Union
 from datetime import datetime, timezone
 import docker
 from proceed.model import Pipeline, PipelineResult, Step, StepResult, Timing
-from proceed.file_matching import match_files
+from proceed.file_matching import match_all
 
 
-def run_pipeline(original: Pipeline, args: dict[str, str] = {}, working_dir: str = '.') -> PipelineResult:
+def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResult:
     start = datetime.now(timezone.utc)
 
     amended = original.with_args_applied(args).with_prototype_applied()
-    step_results = [run_step(step, working_dir) for step in amended.steps]
+    step_results = [run_step(step) for step in amended.steps]
 
     finish = datetime.now(timezone.utc)
     duration = finish - start
@@ -22,10 +22,11 @@ def run_pipeline(original: Pipeline, args: dict[str, str] = {}, working_dir: str
     )
 
 
-def run_step(step: Step, working_dir: str = '.') -> StepResult:
+def run_step(step: Step) -> StepResult:
     start = datetime.now(timezone.utc)
 
-    files_done = {glob_pattern: match_files(working_dir, glob_pattern) for glob_pattern in step.match_done}
+    volume_dirs = step.volumes.keys()
+    files_done = match_all(volume_dirs, step.match_done)
     if files_done:
         return StepResult(
             name=step.name,
@@ -34,7 +35,7 @@ def run_step(step: Step, working_dir: str = '.') -> StepResult:
             timing=Timing(str(start))
         )
 
-    files_in = {glob_pattern: match_files(working_dir, glob_pattern) for glob_pattern in step.match_in}
+    files_in = match_all(volume_dirs, step.match_in)
 
     device_requests = []
     if step.gpus:
@@ -63,7 +64,7 @@ def run_step(step: Step, working_dir: str = '.') -> StepResult:
         logs = container.logs().decode("utf-8")
         container.remove()
 
-        files_out = {glob_pattern: match_files(working_dir, glob_pattern) for glob_pattern in step.match_out}
+        files_out = match_all(volume_dirs, step.match_out)
 
         finish = datetime.now(timezone.utc)
         duration = finish - start

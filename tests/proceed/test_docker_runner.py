@@ -151,22 +151,23 @@ def test_step_gpus(alpine_image):
 
 
 def test_step_files_done(alpine_image, fixture_path):
+    fixture_dir = fixture_path.as_posix()
     step = Step(
         name="files done",
         image=alpine_image.tags[0],
         command=["echo 'this should be skipped'"],
+        volumes={fixture_dir: "/fixture_files"},
         match_done=["*.yaml", "*.ignore"]
     )
-    step_result = run_step(step, fixture_path)
+    step_result = run_step(step)
 
     # The runner should find yaml files in the working dir, "tests/proceed/fixture_files".
     # The existence of these files should cause the step itself to be skipped.
     expected_files = {
-        "*.yaml": {
+        fixture_dir: {
             "happy_spec.yaml": "sha256:23b5688d1593f8479a42dad99efa791db4bf795de9330a06664ac22837fc3ecc",
             "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000"
-        },
-        "*.ignore": {}
+        }
     }
     assert step_result.files_done == expected_files
     assert not step_result.files_in
@@ -177,48 +178,50 @@ def test_step_files_done(alpine_image, fixture_path):
 
 
 def test_step_files_in(alpine_image, fixture_path):
+    fixture_dir = fixture_path.as_posix()
     step = Step(
         name="files in",
         image=alpine_image.tags[0],
         command=["echo", "hello files in"],
+        volumes={fixture_dir: "/fixture_files"},
         match_in=["*.yaml", "*.ignore"]
     )
-    step_result = run_step(step, fixture_path)
+    step_result = run_step(step)
 
     # The runner should find yaml files in the working dir, "tests/proceed/fixture_files".
     # The existence of these files should be noted, and the step should run normally.
     expected_files = {
-        "*.yaml": {
+        fixture_dir: {
             "happy_spec.yaml": "sha256:23b5688d1593f8479a42dad99efa791db4bf795de9330a06664ac22837fc3ecc",
             "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000"
-        },
-        "*.ignore": {}
+        }
     }
+    assert step_result.exit_code == 0
+    assert step_result.logs == "hello files in\n"
     assert step_result.files_in == expected_files
     assert not step_result.files_done
     assert not step_result.files_out
-    assert step_result.exit_code == 0
-    assert step_result.logs == "hello files in\n"
     assert not step_result.skipped
 
 
 def test_step_files_out(alpine_image, fixture_path):
+    fixture_dir = fixture_path.as_posix()
     step = Step(
         name="files out",
         image=alpine_image.tags[0],
         command=["echo", "hello files out"],
+        volumes={fixture_dir: "/fixture_files"},
         match_out=["*.yaml", "*.ignore"]
     )
-    step_result = run_step(step, fixture_path)
+    step_result = run_step(step)
 
     # The runner should find yaml files in the working dir, "tests/proceed/fixture_files".
     # The existence of these files should be noted, and the step should run normally.
     expected_files = {
-        "*.yaml": {
+        fixture_dir: {
             "happy_spec.yaml": "sha256:23b5688d1593f8479a42dad99efa791db4bf795de9330a06664ac22837fc3ecc",
             "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000"
-        },
-        "*.ignore": {}
+        }
     }
     assert step_result.files_out == expected_files
     assert not step_result.files_in
