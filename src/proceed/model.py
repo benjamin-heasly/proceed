@@ -26,9 +26,9 @@ class Step(YamlData):
 
     volumes: dict[str, Union[str, dict[str, str]]] = field(default_factory=dict)
     working_dir: str = None
-    #match_in: str = None
-    #match_out: str = None
-    #match_done: str = None
+    # match_in: str = None
+    # match_out: str = None
+    # match_done: str = Noneapplying given step as defaults
 
     environment: dict[str, str] = field(default_factory=dict)
     gpus: bool = False
@@ -50,7 +50,22 @@ class Step(YamlData):
             mac_address=apply_args(self.mac_address, args),
         )
 
-    # merge with another step (eg defaults) and return an "effectie" step
+    def with_prototype_applied(self, prototype: Self) -> Self:
+        """Construct a new Step, the result of accepting default values from the given prototype."""
+        if not prototype:
+            return self
+
+        return Step(
+            name=self.name or prototype.name,
+            image=self.image or prototype.image,
+            command=self.command or prototype.command,
+            volumes={**prototype.volumes, **self.volumes},
+            working_dir=self.working_dir or prototype.working_dir,
+            environment={**prototype.environment, **self.environment},
+            gpus=self.gpus or prototype.gpus,
+            network_mode=self.network_mode or prototype.network_mode,
+            mac_address=self.mac_address or prototype.mac_address
+        )
 
 
 @dataclass
@@ -74,10 +89,10 @@ class StepResult(YamlData):
     exit_code: int = None
     logs: str = None
     timing: Timing = field(compare=False, default=None)
-    #files_in: str = None
-    #files_out: str = None
-    #files_done: str = None
-    #skipped: boolean = False
+    # files_in: str = None
+    # files_out: str = None
+    # files_done: str = None
+    # skipped: boolean = False
 
 
 @dataclass
@@ -86,13 +101,8 @@ class Pipeline(YamlData):
 
     version: str = "0.0.1"
     args: dict[str, str] = field(default_factory=dict)
+    prototype: Step = None
     steps: list[Step] = field(default_factory=list)
-
-    # Refactor step-related attributes to a default instance of Step?
-    environment: dict[str, str] = field(default_factory=dict)
-    volumes: dict[str, Union[str, dict[str, str]]] = field(default_factory=dict)
-    network_mode: str = None
-    mac_address: str = None
 
     def combine_args(self, args: dict[str, str]) -> dict[str, str]:
         """Update self.args with given args values, but don't add new keys."""
@@ -107,14 +117,23 @@ class Pipeline(YamlData):
     def with_args_applied(self, args: dict[str, str]) -> Self:
         """Construct a new Step, the result of applying given args to string fields of this Step."""
         combined_args = self.combine_args(args)
+        if self.prototype:
+            amended_prototype = self.prototype.with_args_applied(combined_args)
+        else:
+            amended_prototype = None
         return Pipeline(
             version=self.version,
             args=combined_args,
-            steps=[step.with_args_applied(combined_args) for step in self.steps],
-            environment=apply_args(self.environment, args),
-            volumes=apply_args(self.volumes, combined_args),
-            network_mode=apply_args(self.network_mode, args),
-            mac_address=apply_args(self.mac_address, args),
+            prototype=amended_prototype,
+            steps=[step.with_args_applied(combined_args) for step in self.steps]
+        )
+
+    def with_prototype_applied(self) -> Self:
+        return Pipeline(
+            version=self.version,
+            args=self.args,
+            prototype=self.prototype,
+            steps=[step.with_prototype_applied(self.prototype) for step in self.steps]
         )
 
 

@@ -1,8 +1,8 @@
 from pathlib import Path
 import docker
 from pytest import fixture
-from proceed.model import Pipeline, Step, StepResult
-from proceed.docker_runner import run_pipeline, run_step
+from proceed.model import Pipeline, StepResult
+from proceed.docker_runner import run_pipeline
 
 
 @fixture
@@ -43,9 +43,10 @@ def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files):
     args:
         data_dir: ""
         work_dir: ""
-    volumes:
-        "$data_dir": {"bind": /data, "mode": "ro"}
-        "$work_dir": /work
+    prototype:
+        volumes:
+            "$data_dir": {"bind": /data, "mode": "ro"}
+            "$work_dir": /work
     steps:
         - name: classify
           image: fizzbuzz:test

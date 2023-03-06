@@ -7,17 +7,8 @@ from proceed.model import Pipeline, PipelineResult, Step, StepResult, Timing
 def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResult:
     start = datetime.now(timezone.utc)
 
-    amended = original.with_args_applied(args)
-    step_results = [
-        run_step(
-            step,
-            environment=amended.environment,
-            network_mode=amended.network_mode,
-            mac_address=amended.mac_address,
-            volumes=amended.volumes
-        )
-        for step in amended.steps
-    ]
+    amended = original.with_args_applied(args).with_prototype_applied()
+    step_results = [run_step(step) for step in amended.steps]
 
     finish = datetime.now(timezone.utc)
     duration = finish - start
@@ -30,18 +21,8 @@ def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResul
     )
 
 
-def run_step(step: Step,
-             environment: dict[str, str] = {},
-             network_mode: str = None,
-             mac_address: str = None,
-             volumes: dict[str, Union[str, dict[str, str]]] = {}
-             ) -> StepResult:
+def run_step(step: Step) -> StepResult:
     start = datetime.now(timezone.utc)
-
-    combined_environment = {**environment, **step.environment}
-    effective_network_mode = step.network_mode or network_mode
-    effective_mac_address = step.mac_address or mac_address
-    combined_volumes = volumes_to_dictionaries({**volumes, **step.volumes})
 
     device_requests = []
     if step.gpus:
@@ -52,11 +33,11 @@ def run_step(step: Step,
         container = client.containers.run(
             step.image,
             command=step.command,
-            environment=combined_environment,
+            environment=step.environment,
             device_requests=device_requests,
-            network_mode=effective_network_mode,
-            mac_address=effective_mac_address,
-            volumes=combined_volumes,
+            network_mode=step.network_mode,
+            mac_address=step.mac_address,
+            volumes=volumes_to_dictionaries(step.volumes),
             working_dir=step.working_dir,
             auto_remove=False,
             remove=False,

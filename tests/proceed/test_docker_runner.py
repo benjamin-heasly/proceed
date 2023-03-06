@@ -188,10 +188,12 @@ def test_pipeline_with_args(alpine_image):
 
 def test_pipeline_with_environment(alpine_image):
     pipeline = Pipeline(
-        environment={
-            "env_1": "one",
-            "env_2": "two"
-        },
+        prototype=Step(
+            environment={
+                "env_1": "one",
+                "env_2": "two"
+            }
+        ),
         steps=[
             Step(
                 name="step 1",
@@ -214,7 +216,7 @@ def test_pipeline_with_environment(alpine_image):
     ]
     expected_result = PipelineResult(
         original=pipeline,
-        amended=pipeline,
+        amended=pipeline.with_prototype_applied(),
         step_results=expected_step_results
     )
     assert pipeline_result == expected_result
@@ -224,8 +226,10 @@ def test_pipeline_with_environment(alpine_image):
 
 def test_pipeline_with_network_config(alpine_image):
     pipeline = Pipeline(
-        network_mode="none",
-        mac_address="11:22:33:44:55:66",
+        prototype=Step(
+            network_mode="none",
+            mac_address="11:22:33:44:55:66"
+        ),
         steps=[
             Step(
                 name="step 1",

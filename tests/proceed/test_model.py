@@ -5,13 +5,14 @@ pipeline_spec = """
   args:
     arg_1: one
     arg_2: two
-  environment:
-    env_1: one
-    env_2: two
-  network_mode: none
-  mac_address: "11:22:33:44:55:66"
-  volumes:
-    /dir_shared: /foo/shared
+  prototype:
+    environment:
+      env_1: one
+      env_2: two
+    network_mode: none
+    mac_address: "11:22:33:44:55:66"
+    volumes:
+      /dir_shared: /foo/shared
   steps:
     - name: a
       image: image-a
@@ -41,10 +42,12 @@ def test_model_from_yaml():
     expected_pipeline = Pipeline(
         version="0.0.42",
         args={"arg_1": "one", "arg_2": "two", },
-        environment={"env_1": "one", "env_2": "two"},
-        network_mode="none",
-        mac_address="11:22:33:44:55:66",
-        volumes={"/dir_shared": "/foo/shared"},
+        prototype=Step(
+            environment={"env_1": "one", "env_2": "two"},
+            network_mode="none",
+            mac_address="11:22:33:44:55:66",
+            volumes={"/dir_shared": "/foo/shared"},
+        ),
         steps=[
             Step(
                 name="a",
@@ -243,4 +246,48 @@ def test_apply_args_recursively():
         "nested dictionary": [{"bar": "the key for this value is bar"}],
         "other": set("$variable")
     }
+    assert amended == expected
+
+
+def test_apply_prototype_to_steps():
+    pipeline = Pipeline(
+        prototype=Step(
+            name="prototype",
+            environment={"prototype_env": "prototype", "common_env": "prototype"},
+            volumes={"/prototype_dir": "/prototype", "/common_dir": "/prototype"},
+            image="image:prototype"
+        ),
+        steps=[
+            Step(name="step-a", environment={"common_env": "step-a", "step_env": "step-a"}, image="image:step-a"),
+            Step(name="step-b", volumes={"/common_dir": "/step-b", "/step_dir": "/step-b"}),
+        ]
+    )
+    amended = pipeline.with_prototype_applied()
+
+    # The pipeline prototype can supply field values for each step.
+    # Where a step has a default field value, it should take the corresponding value from the prototype.
+    # Where a step has an explicit non-default value, the step shoudl keep its own value.
+    # Dict fields should become the union of step and prototype entries, with the same precedence rule.
+    expected = Pipeline(
+        prototype=Step(
+            name="prototype",
+            environment={"prototype_env": "prototype", "common_env": "prototype"},
+            volumes={"/prototype_dir": "/prototype", "/common_dir": "/prototype"},
+            image="image:prototype"
+        ),
+        steps=[
+            Step(
+                name="step-a",
+                environment={"prototype_env": "prototype", "common_env": "step-a", "step_env": "step-a"},
+                volumes={"/prototype_dir": "/prototype", "/common_dir": "/prototype"},
+                image="image:step-a"
+            ),
+            Step(
+                name="step-b",
+                environment={"prototype_env": "prototype", "common_env": "prototype"},
+                volumes={"/prototype_dir": "/prototype", "/common_dir": "/step-b", "/step_dir": "/step-b"},
+                image="image:prototype"
+            ),
+        ]
+    )
     assert amended == expected
