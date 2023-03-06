@@ -1,5 +1,5 @@
 from pathlib import Path
-from pytest import fixture
+from pytest import fixture, raises
 
 from fizzbuzz import fizzbuzz
 
@@ -75,4 +75,40 @@ def test_filter_fizz_lines(fixture_files, tmp_path):
 def test_filter_buzz_lines(fixture_files, tmp_path):
     out_file = Path(tmp_path, 'filter_buzz_out.txt')
     fizzbuzz.filter_lines(fixture_files['filter_fizz_expected.txt'], out_file, 'buzz')
+    assert_files_equal(out_file, fixture_files['filter_buzz_expected.txt'])
+
+
+def test_help():
+    with raises(SystemExit) as exception_info:
+        fizzbuzz.main(["--help"])
+    assert 0 in exception_info.value.args
+
+
+def test_invalid_input():
+    with raises(SystemExit) as exception_info:
+        fizzbuzz.main(["invalid"])
+    assert 2 in exception_info.value.args
+
+
+def test_classify_lines(fixture_files, tmp_path):
+    out_file = Path(tmp_path, 'classify_out.txt')
+    exit_code = fizzbuzz.main(
+        [fixture_files['classify_in.txt'].as_posix(), out_file.as_posix(), "classify"])
+    assert not exit_code
+    assert_files_equal(out_file, fixture_files['classify_expected.txt'])
+
+
+def test_filter_fizz_lines(fixture_files, tmp_path):
+    out_file = Path(tmp_path, 'filter_fizz_out.txt')
+    exit_code = fizzbuzz.main([fixture_files['classify_expected.txt'].as_posix(
+    ), out_file.as_posix(), "filter", "--substring", "fizz"])
+    assert not exit_code
+    assert_files_equal(out_file, fixture_files['filter_fizz_expected.txt'])
+
+
+def test_filter_buzz_lines(fixture_files, tmp_path):
+    out_file = Path(tmp_path, 'filter_buzz_out.txt')
+    exit_code = fizzbuzz.main([fixture_files['filter_fizz_expected.txt'].as_posix(
+    ), out_file.as_posix(), "filter", "--substring", "buzz"])
+    assert not exit_code
     assert_files_equal(out_file, fixture_files['filter_buzz_expected.txt'])
