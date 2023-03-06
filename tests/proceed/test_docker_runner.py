@@ -29,7 +29,7 @@ def test_step_image_not_found():
 
 
 def test_step_command_not_found(alpine_image):
-    step = Step(name="command not found", image=alpine_image.tags[0], command="no_such_command")
+    step = Step(name="command not found", image=alpine_image.tags[0], command=["no_such_command"])
     step_result = run_step(step)
     assert step_result.name == step.name
     assert step_result.image_id == None
@@ -38,7 +38,7 @@ def test_step_command_not_found(alpine_image):
 
 
 def test_step_command_error(alpine_image):
-    step = Step(name="command error", image=alpine_image.tags[0], command="ls no_such_dir")
+    step = Step(name="command error", image=alpine_image.tags[0], command=["ls", "no_such_dir"])
     step_result = run_step(step)
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
@@ -47,7 +47,7 @@ def test_step_command_error(alpine_image):
 
 
 def test_step_command_success(alpine_image):
-    step = Step(name="command success", image=alpine_image.tags[0], command="echo 'hello to you'")
+    step = Step(name="command success", image=alpine_image.tags[0], command=["echo", "hello to you"])
     step_result = run_step(step)
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
@@ -56,7 +56,7 @@ def test_step_command_success(alpine_image):
 
 
 def test_step_working_dir(alpine_image):
-    step = Step(name="working dir", working_dir="/home", image=alpine_image.tags[0], command="pwd")
+    step = Step(name="working dir", working_dir="/home", image=alpine_image.tags[0], command=["pwd"])
     step_result = run_step(step)
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
@@ -169,9 +169,63 @@ def test_step_files_done(alpine_image, fixture_path):
         "*.ignore": {}
     }
     assert step_result.files_done == expected_files
+    assert not step_result.files_in
+    assert not step_result.files_out
     assert step_result.skipped
     assert step_result.exit_code is None
     assert not step_result.logs
+
+
+def test_step_files_in(alpine_image, fixture_path):
+    step = Step(
+        name="files in",
+        image=alpine_image.tags[0],
+        command=["echo", "hello files in"],
+        match_in=["*.yaml", "*.ignore"]
+    )
+    step_result = run_step(step, fixture_path)
+
+    # The runner should find yaml files in the working dir, "tests/proceed/fixture_files".
+    # The existence of these files should be noted, and the step should run normally.
+    expected_files = {
+        "*.yaml": {
+            "happy_spec.yaml": "sha256:23b5688d1593f8479a42dad99efa791db4bf795de9330a06664ac22837fc3ecc",
+            "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000"
+        },
+        "*.ignore": {}
+    }
+    assert step_result.files_in == expected_files
+    assert not step_result.files_done
+    assert not step_result.files_out
+    assert step_result.exit_code == 0
+    assert step_result.logs == "hello files in\n"
+    assert not step_result.skipped
+
+
+def test_step_files_out(alpine_image, fixture_path):
+    step = Step(
+        name="files out",
+        image=alpine_image.tags[0],
+        command=["echo", "hello files out"],
+        match_out=["*.yaml", "*.ignore"]
+    )
+    step_result = run_step(step, fixture_path)
+
+    # The runner should find yaml files in the working dir, "tests/proceed/fixture_files".
+    # The existence of these files should be noted, and the step should run normally.
+    expected_files = {
+        "*.yaml": {
+            "happy_spec.yaml": "sha256:23b5688d1593f8479a42dad99efa791db4bf795de9330a06664ac22837fc3ecc",
+            "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000"
+        },
+        "*.ignore": {}
+    }
+    assert step_result.files_out == expected_files
+    assert not step_result.files_in
+    assert not step_result.files_done
+    assert step_result.exit_code == 0
+    assert step_result.logs == "hello files out\n"
+    assert not step_result.skipped
 
 
 def test_pipeline_with_args(alpine_image):
@@ -181,8 +235,8 @@ def test_pipeline_with_args(alpine_image):
             "arg_2": "bar"
         },
         steps=[
-            Step(name="step 1", image=alpine_image.tags[0], command="echo 'hello $arg_1'"),
-            Step(name="step 2", image=alpine_image.tags[0], command="echo 'hello $arg_2'")
+            Step(name="step 1", image=alpine_image.tags[0], command=["echo", "hello $arg_1"]),
+            Step(name="step 2", image=alpine_image.tags[0], command=["echo", "hello $arg_2"])
         ]
     )
     args = {
@@ -196,8 +250,8 @@ def test_pipeline_with_args(alpine_image):
             "arg_2": "bar"
         },
         steps=[
-            Step(name="step 1", image=alpine_image.tags[0], command="echo 'hello quux'"),
-            Step(name="step 2", image=alpine_image.tags[0], command="echo 'hello bar'")
+            Step(name="step 1", image=alpine_image.tags[0], command=["echo", "hello quux"]),
+            Step(name="step 2", image=alpine_image.tags[0], command=["echo", "hello bar"])
         ]
     )
     expected_step_results = [
