@@ -1,3 +1,4 @@
+from pathlib import Path
 import docker
 from pytest import fixture
 from proceed.model import Pipeline, PipelineResult, Step, StepResult
@@ -10,6 +11,12 @@ def alpine_image():
     client = docker.from_env()
     image = client.images.pull("alpine")
     return image
+
+
+@fixture
+def fixture_path(request):
+    this_file = Path(request.module.__file__)
+    return Path(this_file.parent, 'fixture_files')
 
 
 def test_step_image_not_found():
@@ -141,6 +148,30 @@ def test_step_gpus(alpine_image):
         assert step_result.exit_code == None
         assert not step_result.timing.is_complete()
         assert 'could not select device driver "" with capabilities: [[gpu]]' in step_result.logs
+
+
+def test_step_files_done(alpine_image, fixture_path):
+    step = Step(
+        name="files done",
+        image=alpine_image.tags[0],
+        command=["echo 'this should be skipped'"],
+        match_done=["*.yaml", "*.ignore"]
+    )
+    step_result = run_step(step, fixture_path)
+
+    # The runner should find yaml files in the working dir, "tests/proceed/fixture_files".
+    # The existence of these files should cause the step itself to be skipped.
+    expected_files = {
+        "*.yaml": {
+            "happy_spec.yaml": "sha256:23b5688d1593f8479a42dad99efa791db4bf795de9330a06664ac22837fc3ecc",
+            "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000"
+        },
+        "*.ignore": {}
+    }
+    assert step_result.files_done == expected_files
+    assert step_result.skipped
+    assert step_result.exit_code is None
+    assert not step_result.logs
 
 
 def test_pipeline_with_args(alpine_image):

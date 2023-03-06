@@ -26,9 +26,9 @@ class Step(YamlData):
 
     volumes: dict[str, Union[str, dict[str, str]]] = field(default_factory=dict)
     working_dir: str = None
-    # match_in: str = None
-    # match_out: str = None
-    # match_done: str = Noneapplying given step as defaults
+    match_done: list[str] = field(default_factory=list)
+    match_in: list[str] = field(default_factory=list)
+    match_out: list[str] = field(default_factory=list)
 
     environment: dict[str, str] = field(default_factory=dict)
     gpus: bool = False
@@ -89,10 +89,10 @@ class StepResult(YamlData):
     exit_code: int = None
     logs: str = None
     timing: Timing = field(compare=False, default=None)
-    # files_in: str = None
-    # files_out: str = None
-    # files_done: str = None
-    # skipped: boolean = False
+    files_done: dict[str, dict[str, str]] = field(default_factory=dict)
+    files_in: dict[str, dict[str, str]] = field(default_factory=dict)
+    files_out: dict[str, dict[str, str]] = field(default_factory=dict)
+    skipped: bool = False
 
 
 @dataclass

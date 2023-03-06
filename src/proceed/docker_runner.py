@@ -2,13 +2,14 @@ from typing import Union
 from datetime import datetime, timezone
 import docker
 from proceed.model import Pipeline, PipelineResult, Step, StepResult, Timing
+from proceed.file_matching import match_files
 
 
-def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResult:
+def run_pipeline(original: Pipeline, args: dict[str, str] = {}, working_dir: str = '.') -> PipelineResult:
     start = datetime.now(timezone.utc)
 
     amended = original.with_args_applied(args).with_prototype_applied()
-    step_results = [run_step(step) for step in amended.steps]
+    step_results = [run_step(step, working_dir) for step in amended.steps]
 
     finish = datetime.now(timezone.utc)
     duration = finish - start
@@ -21,8 +22,19 @@ def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResul
     )
 
 
-def run_step(step: Step) -> StepResult:
+def run_step(step: Step, working_dir: str = '.') -> StepResult:
     start = datetime.now(timezone.utc)
+
+    files_done = {glob_pattern: match_files(working_dir, glob_pattern) for glob_pattern in step.match_done}
+    if files_done:
+        return StepResult(
+            name=step.name,
+            skipped=True,
+            files_done=files_done,
+            timing=Timing(str(start))
+        )
+
+    files_in = {glob_pattern: match_files(working_dir, glob_pattern) for glob_pattern in step.match_in}
 
     device_requests = []
     if step.gpus:
@@ -51,6 +63,8 @@ def run_step(step: Step) -> StepResult:
         logs = container.logs().decode("utf-8")
         container.remove()
 
+        files_out = {glob_pattern: match_files(working_dir, glob_pattern) for glob_pattern in step.match_out}
+
         finish = datetime.now(timezone.utc)
         duration = finish - start
 
@@ -59,6 +73,9 @@ def run_step(step: Step) -> StepResult:
             image_id=container.image.id,
             exit_code=run_results['StatusCode'],
             logs=logs,
+            files_done=files_done,
+            files_in=files_in,
+            files_out=files_out,
             timing=Timing(str(start), str(finish), duration.total_seconds())
         )
 

@@ -17,6 +17,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                         nargs="+",
                         type=str,
                         help="one or more args to pass to the pipeline, for example: --args foo=bar baz=quux")
+    parser.add_argument("--working_dir", "-w",
+                        type=str,
+                        help="working dir for the pipeline run",
+                        default=".")
     cli_args = parser.parse_args(argv)
 
     print(f"Parsing proceed pipeline specification from: {cli_args.spec}")
@@ -32,7 +36,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     print(f"Running pipeline with args: {pipeline_args}")
 
-    pipeline_result = run_pipeline(pipeline, pipeline_args)
+    pipeline_result = run_pipeline(pipeline, pipeline_args, cli_args.working_dir)
 
     print(f"Writing execution record to: {cli_args.record}")
 
