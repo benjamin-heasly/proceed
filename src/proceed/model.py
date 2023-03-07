@@ -5,6 +5,7 @@ from proceed.yaml_data import YamlData
 
 proceed_model_version = "0.0.1"
 
+
 def apply_args(x: Any, args: dict[str, str]):
     """Recursively apply given args to string templates found in x and its elements."""
     if isinstance(x, str):
@@ -45,6 +46,9 @@ class Step(YamlData):
             command=apply_args(self.command, args),
             volumes=apply_args(self.volumes, args),
             working_dir=apply_args(self.working_dir, args),
+            match_done=apply_args(self.match_done, args),
+            match_in=apply_args(self.match_in, args),
+            match_out=apply_args(self.match_out, args),
             environment=apply_args(self.environment, args),
             gpus=apply_args(self.gpus, args),
             network_mode=apply_args(self.network_mode, args),
@@ -62,6 +66,9 @@ class Step(YamlData):
             command=self.command or prototype.command,
             volumes={**prototype.volumes, **self.volumes},
             working_dir=self.working_dir or prototype.working_dir,
+            match_done=self.match_done or prototype.match_done,
+            match_in=self.match_in or prototype.match_in,
+            match_out=self.match_out or prototype.match_out,
             environment={**prototype.environment, **self.environment},
             gpus=self.gpus or prototype.gpus,
             network_mode=self.network_mode or prototype.network_mode,

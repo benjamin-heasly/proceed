@@ -43,7 +43,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     with open(cli_args.record, "w") as record:
         record.write(pipeline_result.to_yaml(skip_empty=cli_args.skip_empty))
 
-    error_count = sum(step_result.exit_code != 0 for step_result in pipeline_result.step_results)
+    error_count = sum((not not step_result.exit_code) for step_result in pipeline_result.step_results)
     if error_count:
         print(f"{error_count} steps had nonzero exit codes:")
         for step_result in pipeline_result.step_results:
