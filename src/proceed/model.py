@@ -3,6 +3,7 @@ from typing import Any, Self, Union
 from string import Template
 from proceed.yaml_data import YamlData
 
+proceed_model_version = "0.0.1"
 
 def apply_args(x: Any, args: dict[str, str]):
     """Recursively apply given args to string templates found in x and its elements."""
@@ -20,8 +21,8 @@ def apply_args(x: Any, args: dict[str, str]):
 class Step(YamlData):
     """A computation step with required inputs, expected outputs, and container run parameters."""
 
-    name: str = ""
-    image: str = ""
+    name: str = None
+    image: str = None
     command: list[str] = field(default_factory=list)
 
     volumes: dict[str, Union[str, dict[str, str]]] = field(default_factory=dict)
@@ -31,7 +32,7 @@ class Step(YamlData):
     match_out: list[str] = field(default_factory=list)
 
     environment: dict[str, str] = field(default_factory=dict)
-    gpus: bool = False
+    gpus: bool = None
 
     network_mode: str = None
     mac_address: str = None
@@ -74,7 +75,7 @@ class Timing(YamlData):
 
     start: str = None
     finish: str = None
-    duration: float = 0.0
+    duration: float = None
 
     def is_complete(self):
         return self.start is not None and self.finish is not None and self.duration > 0
@@ -84,7 +85,7 @@ class Timing(YamlData):
 class StepResult(YamlData):
     """The results of running a Step process."""
 
-    name: str = ""
+    name: str = None
     image_id: str = None
     exit_code: int = None
     logs: str = None
@@ -99,7 +100,7 @@ class StepResult(YamlData):
 class Pipeline(YamlData):
     """Top-level container for Steps to run and other pipeline configuration."""
 
-    version: str = "0.0.1"
+    version: str = proceed_model_version
     args: dict[str, str] = field(default_factory=dict)
     prototype: Step = None
     steps: list[Step] = field(default_factory=list)
@@ -141,7 +142,7 @@ class Pipeline(YamlData):
 class PipelineResult(YamlData):
     """The results of running a whole Pipeline."""
 
-    original: Pipeline
-    amended: Pipeline
-    step_results: list[StepResult]
+    original: Pipeline = None
+    amended: Pipeline = None
     timing: Timing = field(compare=False, default=None)
+    step_results: list[StepResult] = field(default_factory=list)

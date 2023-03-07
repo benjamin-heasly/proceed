@@ -8,11 +8,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Declarative file processing with YAML and containers.")
     parser.add_argument("spec",
                         type=str,
-                        help="input file with proceed pipeline specification")
+                        help="input file with proceed pipeline specification (YAML)")
     parser.add_argument("--record", "-r",
                         type=str,
-                        help="output file to receive execution record",
+                        help="output file to receive execution record (YAML)",
                         default="execution_record.yml")
+    parser.add_argument("--skip-empty", "-s",
+                        type=bool,
+                        help="whether to skip empty lists and dicts and null values when writing the execution record",
+                        default=True)
     parser.add_argument("--args", "-a",
                         nargs="+",
                         type=str,
@@ -37,7 +41,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     print(f"Writing execution record to: {cli_args.record}")
 
     with open(cli_args.record, "w") as record:
-        record.write(pipeline_result.to_yaml())
+        record.write(pipeline_result.to_yaml(skip_empty=cli_args.skip_empty))
 
     error_count = sum(step_result.exit_code != 0 for step_result in pipeline_result.step_results)
     if error_count:

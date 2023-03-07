@@ -78,19 +78,19 @@ def test_filter_buzz_lines(fixture_files, tmp_path):
     assert_files_equal(out_file, fixture_files['filter_buzz_expected.txt'])
 
 
-def test_help():
+def test_main_help():
     with raises(SystemExit) as exception_info:
         fizzbuzz.main(["--help"])
     assert 0 in exception_info.value.args
 
 
-def test_invalid_input():
+def test_main_invalid_input():
     with raises(SystemExit) as exception_info:
         fizzbuzz.main(["invalid"])
     assert 2 in exception_info.value.args
 
 
-def test_classify_lines(fixture_files, tmp_path):
+def test_main_classify_lines(fixture_files, tmp_path):
     out_file = Path(tmp_path, 'classify_out.txt')
     exit_code = fizzbuzz.main(
         [fixture_files['classify_in.txt'].as_posix(), out_file.as_posix(), "classify"])
@@ -98,7 +98,7 @@ def test_classify_lines(fixture_files, tmp_path):
     assert_files_equal(out_file, fixture_files['classify_expected.txt'])
 
 
-def test_filter_fizz_lines(fixture_files, tmp_path):
+def test_main_filter_fizz_lines(fixture_files, tmp_path):
     out_file = Path(tmp_path, 'filter_fizz_out.txt')
     exit_code = fizzbuzz.main([fixture_files['classify_expected.txt'].as_posix(
     ), out_file.as_posix(), "filter", "--substring", "fizz"])
@@ -106,7 +106,7 @@ def test_filter_fizz_lines(fixture_files, tmp_path):
     assert_files_equal(out_file, fixture_files['filter_fizz_expected.txt'])
 
 
-def test_filter_buzz_lines(fixture_files, tmp_path):
+def test_main_filter_buzz_lines(fixture_files, tmp_path):
     out_file = Path(tmp_path, 'filter_buzz_out.txt')
     exit_code = fizzbuzz.main([fixture_files['filter_fizz_expected.txt'].as_posix(
     ), out_file.as_posix(), "filter", "--substring", "buzz"])

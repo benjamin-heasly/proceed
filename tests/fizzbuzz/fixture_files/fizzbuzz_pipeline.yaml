@@ -1,0 +1,18 @@
+version: 0.0.1
+args:
+  data_dir: "."
+  work_dir: "."
+prototype:
+  volumes:
+    "$data_dir": {"bind": /data, "mode": "ro"}
+    "$work_dir": /work
+steps:
+  - name: classify
+    image: fizzbuzz:test
+    command: ["/data/classify_in.txt", "/work/classify_out.txt", "classify"]
+  - name: filter fizz
+    image: fizzbuzz:test
+    command: ["/work/classify_out.txt", "/work/filter_fizz_out.txt", "filter", "--substring", "fizz"]
+  - name: filter buzz
+    image: fizzbuzz:test
+    command: ["/work/filter_fizz_out.txt", "/work/filter_buzz_out.txt", "filter", "--substring", "buzz"]

@@ -1,8 +1,22 @@
 from types import GenericAlias
-from typing import Self
+from typing import Any, Self
 from dataclasses import asdict, fields
 import inspect
 import yaml
+
+
+def is_empty(x: Any):
+    return x is None or (isinstance(x, list) and not x) or (isinstance(x, dict) and not x)
+
+
+def remove_empty_values(x: Any):
+    """Recursively remove dict entries with falsey values."""
+    if isinstance(x, list):
+        return [remove_empty_values(e) for e in x]
+    elif isinstance(x, dict):
+        return {k: remove_empty_values(v) for k, v in x.items() if not is_empty(v)}
+    else:
+        return x
 
 
 class YamlData():
@@ -12,10 +26,12 @@ class YamlData():
     field names and types -- these do not write or use custom YAML tags.
     """
 
-    def to_yaml(self) -> str:
+    def to_yaml(self, skip_empty: bool = True) -> str:
         """Dump self to a plain YAML string without custom YAML tags."""
 
         self_dict = asdict(self)
+        if skip_empty:
+            self_dict = remove_empty_values(self_dict)
         self_yaml = yaml.safe_dump(self_dict, sort_keys=False, default_flow_style=None)
         return self_yaml
 

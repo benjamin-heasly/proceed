@@ -1,3 +1,4 @@
+from os import getcwd
 from pathlib import Path
 import docker
 from pytest import fixture
@@ -15,7 +16,7 @@ def alpine_image():
 
 @fixture
 def fixture_path(request):
-    this_file = Path(request.module.__file__)
+    this_file = Path(request.module.__file__).relative_to(getcwd())
     return Path(this_file.parent, 'fixture_files')
 
 
@@ -223,11 +224,11 @@ def test_step_files_out(alpine_image, fixture_path):
             "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000"
         }
     }
+    assert step_result.exit_code == 0
+    assert step_result.logs == "hello files out\n"
     assert step_result.files_out == expected_files
     assert not step_result.files_in
     assert not step_result.files_done
-    assert step_result.exit_code == 0
-    assert step_result.logs == "hello files out\n"
     assert not step_result.skipped
 
 

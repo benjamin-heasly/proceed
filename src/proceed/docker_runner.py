@@ -1,8 +1,9 @@
 from typing import Union
 from datetime import datetime, timezone
+from pathlib import Path
 import docker
 from proceed.model import Pipeline, PipelineResult, Step, StepResult, Timing
-from proceed.file_matching import match_all
+from proceed.file_matching import match_patterns_in_dirs
 
 
 def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResult:
@@ -26,7 +27,7 @@ def run_step(step: Step) -> StepResult:
     start = datetime.now(timezone.utc)
 
     volume_dirs = step.volumes.keys()
-    files_done = match_all(volume_dirs, step.match_done)
+    files_done = match_patterns_in_dirs(volume_dirs, step.match_done)
     if files_done:
         return StepResult(
             name=step.name,
@@ -35,7 +36,7 @@ def run_step(step: Step) -> StepResult:
             timing=Timing(str(start))
         )
 
-    files_in = match_all(volume_dirs, step.match_in)
+    files_in = match_patterns_in_dirs(volume_dirs, step.match_in)
 
     device_requests = []
     if step.gpus:
@@ -50,7 +51,7 @@ def run_step(step: Step) -> StepResult:
             device_requests=device_requests,
             network_mode=step.network_mode,
             mac_address=step.mac_address,
-            volumes=volumes_to_dictionaries(step.volumes),
+            volumes=volumes_to_absolute_host(volumes_to_dictionaries(step.volumes)),
             working_dir=step.working_dir,
             auto_remove=False,
             remove=False,
@@ -64,7 +65,7 @@ def run_step(step: Step) -> StepResult:
         logs = container.logs().decode("utf-8")
         container.remove()
 
-        files_out = match_all(volume_dirs, step.match_out)
+        files_out = match_patterns_in_dirs(volume_dirs, step.match_out)
 
         finish = datetime.now(timezone.utc)
         duration = finish - start
@@ -98,10 +99,14 @@ def run_step(step: Step) -> StepResult:
 def volumes_to_dictionaries(volumes: dict[str, Union[str, dict[str, str]]],
                             default_mode: str = "rw") -> dict[str, dict[str, str]]:
     normalized = {}
-    for k in volumes.keys():
-        v = volumes[k]
+    for k, v in volumes.items():
         if isinstance(v, str):
             normalized[k] = {"bind": v, "mode": default_mode}
         else:
             normalized[k] = v
     return normalized
+
+
+def volumes_to_absolute_host(volumes: dict[str, dict[str, str]]) -> dict[str, dict[str, str]]:
+    absolute = {Path(k).absolute().as_posix(): v for k, v in volumes.items()}
+    return absolute
