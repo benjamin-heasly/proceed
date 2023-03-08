@@ -15,6 +15,14 @@ def alpine_image():
 
 
 @fixture
+def ubuntu_image():
+    """The ubuntu image must be present on the host, and/or we must be on the network -- for gpu capability tests"""
+    client = docker.from_env()
+    image = client.images.pull("ubuntu")
+    return image
+
+
+@fixture
 def fixture_path(request):
     this_file = Path(request.module.__file__).relative_to(getcwd())
     return Path(this_file.parent, 'fixture_files')
@@ -121,32 +129,28 @@ def test_step_mac_address(alpine_image):
     assert "HWaddr AA:BB:CC:DD:EE:FF" in step_result.logs
 
 
-def test_step_gpus(alpine_image):
+def test_step_gpus(ubuntu_image):
+    # The ubuntu image, but not alpine, provides the "nvidia-smi" utility we want.
     step = Step(
         name="gpus",
         gpus=True,
-        image=alpine_image.tags[0],
+        image=ubuntu_image.tags[0],
         command=["nvidia-smi"]
     )
     step_result = run_step(step)
     assert step_result.name == step.name
 
-    # Awkwardly, the result of this test depends on the host configuration:
-    # Either the nvidia runtime is installed (via WSL or nvidia-container-toolkit), or it's not.
-    # Maybe we can live with these two cases -- if it's really just two.
-    # For this test we want to know whether we correctly *requested* the gpu device.
+    # Awkwardly, the result of this test depends on whether the host has docker "--gpus" support.
+    # For this test we want to know whether we correctly *requested* a gpu device.
     # We don't actually care if the process was able to use a gpu.
-    client = docker.client.from_env()
-    host_info = client.info()
-    if "nvidia" in host_info['Runtimes'].keys():
-        # Docker has the nvidia runtime, so this process should run OK.
-        assert step_result.exit_code == 0
+    # So, we'll check for two expected outcomes, assuming we at least *requested* the gpu.
+    if step_result.exit_code == 0:
+        # Host seems to have docker "--gpus" support.
         assert step_result.timing.is_complete()
         assert "NVIDIA-SMI" in step_result.logs
     else:
-        # Docker has no gpu runtime, so this container should fail with an expected message, as in:
+        # Host seems not to have docker "--gpus" support, check for relevant error, as in:
         # https://github.com/NVIDIA/nvidia-docker/issues/1034
-        assert step_result.exit_code == None
         assert not step_result.timing.is_complete()
         assert 'could not select device driver "" with capabilities: [[gpu]]' in step_result.logs
 
