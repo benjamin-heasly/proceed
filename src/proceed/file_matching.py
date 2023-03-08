@@ -1,5 +1,6 @@
-from pathlib import Path
+import logging
 import hashlib
+from pathlib import Path
 
 
 def match_patterns_in_dirs(dirs: list[str], glob_patterns: list[str])-> dict[str, dict[str, str]]:
@@ -23,6 +24,7 @@ def match_pattern_in_dir(dir: str, glob_pattern: str) -> dict[str, str]:
 
 def hash_contents(path: Path, algorithm: str = "sha256") -> str:
     """Hash the file contents at the given path, return hex-encoded digest prefixed with the algorignm name."""
+    logging.info(f"Computing content hash ({algorithm}) for file: {path.as_posix()}")
     with open(path, "rb") as f:
         digest = hashlib.file_digest(f, algorithm)
     return f"{digest.name}:{digest.hexdigest()}"

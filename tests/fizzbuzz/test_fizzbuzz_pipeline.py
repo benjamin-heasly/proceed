@@ -31,13 +31,20 @@ def fixture_files(fixture_path):
     return {text_file.name: text_file for text_file in text_files + yaml_files}
 
 
-def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files):
+@fixture
+def fixture_digests(fixture_files):
+    return {file_name: hash_contents(file) for file_name, file in fixture_files.items()}
+
+
+def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files, fixture_digests):
     # First run through the pipeline should succeed and see expected input and output files.
     pipeline_spec = fixture_files["fizzbuzz_pipeline_spec.yaml"].as_posix()
     record = Path(tmp_path, 'fizzbuzz_record.yaml').as_posix()
+    log_file = Path(tmp_path, "fizzbuzz.log").as_posix()
     args = [
         pipeline_spec,
         '--record', record,
+        '--log-file', log_file,
         '--args', f"data_dir={fixture_path.as_posix()}", f"work_dir={tmp_path.as_posix()}"
     ]
 
@@ -59,10 +66,10 @@ def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files):
         logs="OK.\n",
         files_done={},
         files_in={
-            fixture_path.as_posix(): {'classify_in.txt': hash_contents(fixture_files["classify_in.txt"])}
+            fixture_path.as_posix(): {'classify_in.txt': fixture_digests["classify_in.txt"]}
         },
         files_out={
-            tmp_path.as_posix(): {'classify_out.txt': hash_contents(fixture_files["classify_expected.txt"])}
+            tmp_path.as_posix(): {'classify_out.txt': fixture_digests["classify_expected.txt"]}
         }
     )
     assert classify_result == classify_expected
@@ -76,10 +83,10 @@ def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files):
         logs="OK.\n",
         files_done={},
         files_in={
-            tmp_path.as_posix(): {'classify_out.txt': hash_contents(fixture_files["classify_expected.txt"])}
+            tmp_path.as_posix(): {'classify_out.txt': fixture_digests["classify_expected.txt"]}
         },
         files_out={
-            tmp_path.as_posix(): {'filter_fizz_out.txt': hash_contents(fixture_files["filter_fizz_expected.txt"])}
+            tmp_path.as_posix(): {'filter_fizz_out.txt': fixture_digests["filter_fizz_expected.txt"]}
         }
     )
     assert filter_fizz_result == filter_fizz_expected
@@ -93,23 +100,31 @@ def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files):
         logs="OK.\n",
         files_done={},
         files_in={
-            tmp_path.as_posix(): {'filter_fizz_out.txt': hash_contents(fixture_files["filter_fizz_expected.txt"])}
+            tmp_path.as_posix(): {'filter_fizz_out.txt': fixture_digests["filter_fizz_expected.txt"]}
         },
         files_out={
-            tmp_path.as_posix(): {'filter_buzz_out.txt': hash_contents(fixture_files["filter_buzz_expected.txt"])}
+            tmp_path.as_posix(): {'filter_buzz_out.txt': fixture_digests["filter_buzz_expected.txt"]}
         }
     )
     assert filter_buzz_result == filter_buzz_expected
     assert filter_buzz_result.timing.is_complete()
 
+    with open(log_file) as f:
+        log = f.read()
 
-def test_pipeline_skip_done_steps(fizzbuzz_image, fixture_path, tmp_path, fixture_files):
+    assert "Parsing proceed pipeline specification" in log
+    assert log.endswith("OK.\n")
+
+
+def test_pipeline_skip_done_steps(fizzbuzz_image, fixture_path, tmp_path, fixture_files, fixture_digests):
     # Repeat run through the pipeline should succeed and skip steps because they already have "done" files.
     pipeline_spec = fixture_files["fizzbuzz_pipeline_spec.yaml"].as_posix()
     record = Path(tmp_path, 'fizzbuzz_record.yaml').as_posix()
+    log_file = Path(tmp_path, "fizzbuzz.log").as_posix()
     args = [
         pipeline_spec,
         '--record', record,
+        '--log-file', log_file,
         '--args', f"data_dir={fixture_path.as_posix()}", f"work_dir={tmp_path.as_posix()}"
     ]
 
@@ -132,7 +147,7 @@ def test_pipeline_skip_done_steps(fizzbuzz_image, fixture_path, tmp_path, fixtur
         name="classify",
         skipped=True,
         files_done={
-            tmp_path.as_posix(): {'classify_out.txt': hash_contents(fixture_files["classify_expected.txt"])}
+            tmp_path.as_posix(): {'classify_out.txt': fixture_digests["classify_expected.txt"]}
         }
     )
     assert classify_result == classify_expected
@@ -142,7 +157,7 @@ def test_pipeline_skip_done_steps(fizzbuzz_image, fixture_path, tmp_path, fixtur
         name="filter fizz",
         skipped=True,
         files_done={
-            tmp_path.as_posix(): {'filter_fizz_out.txt': hash_contents(fixture_files["filter_fizz_expected.txt"])}
+            tmp_path.as_posix(): {'filter_fizz_out.txt': fixture_digests["filter_fizz_expected.txt"]}
         }
     )
     assert filter_fizz_result == filter_fizz_expected
@@ -152,7 +167,13 @@ def test_pipeline_skip_done_steps(fizzbuzz_image, fixture_path, tmp_path, fixtur
         name="filter buzz",
         skipped=True,
         files_done={
-            tmp_path.as_posix(): {'filter_buzz_out.txt': hash_contents(fixture_files["filter_buzz_expected.txt"])}
+            tmp_path.as_posix(): {'filter_buzz_out.txt': fixture_digests["filter_buzz_expected.txt"]}
         }
     )
     assert filter_buzz_result == filter_buzz_expected
+
+    with open(log_file) as f:
+        log = f.read()
+
+    assert "Parsing proceed pipeline specification" in log
+    assert log.endswith("OK.\n")

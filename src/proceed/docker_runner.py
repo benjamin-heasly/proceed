@@ -1,3 +1,4 @@
+import logging
 from typing import Union
 from datetime import datetime, timezone
 from pathlib import Path
@@ -7,6 +8,8 @@ from proceed.file_matching import match_patterns_in_dirs
 
 
 def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResult:
+    logging.info("Starting pipeline run.")
+
     start = datetime.now(timezone.utc)
 
     amended = original.with_args_applied(args).with_prototype_applied()
@@ -15,20 +18,25 @@ def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResul
     finish = datetime.now(timezone.utc)
     duration = finish - start
 
+    logging.info("Finished pipeline run.")
+
     return PipelineResult(
         original=original,
         amended=amended,
         step_results=step_results,
-        timing=Timing(str(start), str(finish), duration.total_seconds())
+        timing=Timing(start.isoformat(sep="T"), finish.isoformat(sep="T"), duration.total_seconds())
     )
 
 
 def run_step(step: Step) -> StepResult:
+    logging.info(f"Starting step: {step.name}")
+
     start = datetime.now(timezone.utc)
 
     volume_dirs = step.volumes.keys()
     files_done = match_patterns_in_dirs(volume_dirs, step.match_done)
     if files_done:
+        logging.info(f"Step {step.name} has {len(files_done)} done files, skipping execution.")
         return StepResult(
             name=step.name,
             skipped=True,
@@ -57,6 +65,7 @@ def run_step(step: Step) -> StepResult:
             remove=False,
             detach=True
         )
+        logging.info(f"Waiting for step to complete: {step.name}")
         run_results = container.wait()
 
         # Retrieve container logs before removing the container.
@@ -70,6 +79,8 @@ def run_step(step: Step) -> StepResult:
         finish = datetime.now(timezone.utc)
         duration = finish - start
 
+        logging.info(f"Finished step: {step.name}")
+
         return StepResult(
             name=step.name,
             image_id=container.image.id,
@@ -78,21 +89,23 @@ def run_step(step: Step) -> StepResult:
             files_done=files_done,
             files_in=files_in,
             files_out=files_out,
-            timing=Timing(str(start), str(finish), duration.total_seconds())
+            timing=Timing(start.isoformat(sep="T"), finish.isoformat(sep="T"), duration.total_seconds())
         )
 
     except docker.errors.ImageNotFound as image_not_found_error:
+        logging.info(f"Error running step {step.name}: {image_not_found_error.explanation}")
         return StepResult(
             name=step.name,
             logs=image_not_found_error.explanation,
-            timing=Timing(str(start))
+            timing=Timing(start.isoformat(sep="T"))
         )
 
     except docker.errors.APIError as api_error:
+        logging.info(f"Error running step {step.name}: {api_error.explanation}")
         return StepResult(
             name=step.name,
             logs=api_error.explanation,
-            timing=Timing(str(start))
+            timing=Timing(start.isoformat(sep="T"))
         )
 
 
