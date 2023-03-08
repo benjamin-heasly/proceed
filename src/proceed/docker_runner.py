@@ -13,7 +13,13 @@ def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResul
     start = datetime.now(timezone.utc)
 
     amended = original.with_args_applied(args).with_prototype_applied()
-    step_results = [run_step(step) for step in amended.steps]
+    step_results = []
+    for step in amended.steps:
+        step_result = run_step(step)
+        step_results.append(step_result)
+        if step_result.exit_code:
+            logging.info("Stopping pipeline run after error.")
+            break
 
     finish = datetime.now(timezone.utc)
     duration = finish - start
@@ -29,14 +35,14 @@ def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResul
 
 
 def run_step(step: Step) -> StepResult:
-    logging.info(f"Starting step: {step.name}")
+    logging.info(f"Step '{step.name}': starting.")
 
     start = datetime.now(timezone.utc)
 
     volume_dirs = step.volumes.keys()
     files_done = match_patterns_in_dirs(volume_dirs, step.match_done)
     if files_done:
-        logging.info(f"Step {step.name} has {len(files_done)} done files, skipping execution.")
+        logging.info(f"Step '{step.name}': found {len(files_done)} done files, skipping execution.")
         return StepResult(
             name=step.name,
             skipped=True,
@@ -45,6 +51,7 @@ def run_step(step: Step) -> StepResult:
         )
 
     files_in = match_patterns_in_dirs(volume_dirs, step.match_in)
+    logging.info(f"Step '{step.name}': found {len(files_in)} input files.")
 
     device_requests = []
     if step.gpus:
@@ -65,8 +72,10 @@ def run_step(step: Step) -> StepResult:
             remove=False,
             detach=True
         )
-        logging.info(f"Waiting for step to complete: {step.name}")
+        logging.info(f"Step '{step.name}': waiting for process to complete.")
         run_results = container.wait()
+        step_exit_code=run_results['StatusCode']
+        logging.info(f"Step '{step.name}': process completed with exit code {step_exit_code}")
 
         # Retrieve container logs before removing the container.
         # The sdk has a race condition around this, otherwise we could just do:
@@ -74,17 +83,21 @@ def run_step(step: Step) -> StepResult:
         logs = container.logs().decode("utf-8")
         container.remove()
 
+        if step_exit_code:
+            logging.info(f"Step '{step.name}': logs --\n {logs}")
+
         files_out = match_patterns_in_dirs(volume_dirs, step.match_out)
+        logging.info(f"Step '{step.name}': found {len(files_out)} output files.")
 
         finish = datetime.now(timezone.utc)
         duration = finish - start
 
-        logging.info(f"Finished step: {step.name}")
+        logging.info(f"Step '{step.name}': finished.")
 
         return StepResult(
             name=step.name,
             image_id=container.image.id,
-            exit_code=run_results['StatusCode'],
+            exit_code=step_exit_code,
             logs=logs,
             files_done=files_done,
             files_in=files_in,
@@ -93,7 +106,7 @@ def run_step(step: Step) -> StepResult:
         )
 
     except docker.errors.ImageNotFound as image_not_found_error:
-        logging.info(f"Error running step {step.name}: {image_not_found_error.explanation}")
+        logging.info(f"Step '{step.name}': error --\n {image_not_found_error.explanation}")
         return StepResult(
             name=step.name,
             logs=image_not_found_error.explanation,
@@ -101,7 +114,7 @@ def run_step(step: Step) -> StepResult:
         )
 
     except docker.errors.APIError as api_error:
-        logging.info(f"Error running step {step.name}: {api_error.explanation}")
+        logging.info(f"Step '{step.name}': error --\n {api_error.explanation}")
         return StepResult(
             name=step.name,
             logs=api_error.explanation,
