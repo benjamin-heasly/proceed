@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import docker
 from proceed.model import Pipeline, PipelineResult, Step, StepResult, Timing
-from proceed.file_matching import match_patterns_in_dirs
+from proceed.file_matching import count_matches, match_patterns_in_dirs
 
 
 def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResult:
@@ -42,7 +42,7 @@ def run_step(step: Step) -> StepResult:
     volume_dirs = step.volumes.keys()
     files_done = match_patterns_in_dirs(volume_dirs, step.match_done)
     if files_done:
-        logging.info(f"Step '{step.name}': found {len(files_done)} done files, skipping execution.")
+        logging.info(f"Step '{step.name}': found {count_matches(files_done)} done files, skipping execution.")
         return StepResult(
             name=step.name,
             skipped=True,
@@ -51,7 +51,7 @@ def run_step(step: Step) -> StepResult:
         )
 
     files_in = match_patterns_in_dirs(volume_dirs, step.match_in)
-    logging.info(f"Step '{step.name}': found {len(files_in)} input files.")
+    logging.info(f"Step '{step.name}': found {count_matches(files_in)} input files.")
 
     device_requests = []
     if step.gpus:
@@ -87,7 +87,7 @@ def run_step(step: Step) -> StepResult:
             logging.info(f"Step '{step.name}': logs --\n {logs}")
 
         files_out = match_patterns_in_dirs(volume_dirs, step.match_out)
-        logging.info(f"Step '{step.name}': found {len(files_out)} output files.")
+        logging.info(f"Step '{step.name}': found {count_matches(files_out)} output files.")
 
         finish = datetime.now(timezone.utc)
         duration = finish - start

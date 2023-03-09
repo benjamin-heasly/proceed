@@ -3,6 +3,10 @@ import hashlib
 from pathlib import Path
 
 
+def count_matches(matches: dict[str, dict[str, str]]) -> int:
+    return sum(len(dir_matches) for dir_matches in matches.values())
+
+
 def match_patterns_in_dirs(dirs: list[str], glob_patterns: list[str])-> dict[str, dict[str, str]]:
     """Search each given dir using each given "glob" pattern, return matched files, with content digests, per dir."""
     matches = {}
@@ -19,7 +23,8 @@ def match_patterns_in_dirs(dirs: list[str], glob_patterns: list[str])-> dict[str
 def match_pattern_in_dir(dir: str, glob_pattern: str) -> dict[str, str]:
     """Search the given dir using the given "glob" pattern, return matched files with their content digests."""
     matches = Path(dir).glob(glob_pattern)
-    return {path.relative_to(dir).as_posix(): hash_contents(path) for path in matches}
+    file_matches = [match for match in matches if match.is_file()]
+    return {path.relative_to(dir).as_posix(): hash_contents(path) for path in file_matches}
 
 
 def hash_contents(path: Path, algorithm: str = "sha256") -> str:
