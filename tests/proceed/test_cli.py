@@ -26,9 +26,7 @@ def fixture_files(fixture_path):
 
 def test_happy_pipeline(fixture_files, tmp_path, alpine_image):
     pipeline_spec = fixture_files['happy_spec.yaml'].as_posix()
-    record_file = Path(tmp_path, 'happy_record.yaml').as_posix()
-    log_file = Path(tmp_path, "test_happy_pipeline.log").as_posix()
-    cli_args = [pipeline_spec, '--record', record_file, '--log-file', log_file, '--args', 'arg_1=quux']
+    cli_args = [pipeline_spec, '--out-dir', tmp_path.as_posix(), '--out-id', "test", '--args', 'arg_1=quux']
     exit_code = main(cli_args)
     assert exit_code == 0
 
@@ -43,12 +41,12 @@ def test_happy_pipeline(fixture_files, tmp_path, alpine_image):
         ]
     )
 
-    with open(record_file) as f:
+    with open(Path(tmp_path, "happy_spec", "test", "execution_record.yaml")) as f:
         pipeline_result = PipelineResult.from_yaml(f.read())
 
     assert pipeline_result == expected_result
 
-    with open(log_file) as f:
+    with open(Path(tmp_path, "happy_spec", "test", "proceed.log")) as f:
         log = f.read()
 
     assert "Parsing proceed pipeline specification" in log
@@ -57,9 +55,7 @@ def test_happy_pipeline(fixture_files, tmp_path, alpine_image):
 
 def test_sad_pipeline(fixture_files, tmp_path, alpine_image):
     pipeline_spec = fixture_files['sad_spec.yaml'].as_posix()
-    record_file = Path(tmp_path, 'sad_record.yaml').as_posix()
-    log_file = Path(tmp_path, "test_sad_pipeline.log").as_posix()
-    cli_args = [pipeline_spec, '--record', record_file, '--log-file', log_file]
+    cli_args = [pipeline_spec, '--out-dir', tmp_path.as_posix(), '--out-id', "test", '--args', 'arg_1=quux']
     exit_code = main(cli_args)
     assert exit_code == 1
 
@@ -74,12 +70,12 @@ def test_sad_pipeline(fixture_files, tmp_path, alpine_image):
         ]
     )
 
-    with open(record_file) as f:
+    with open(Path(tmp_path, "sad_spec", "test", "execution_record.yaml")) as f:
         pipeline_result = PipelineResult.from_yaml(f.read())
 
     assert pipeline_result == expected_result
 
-    with open(log_file) as f:
+    with open(Path(tmp_path, "sad_spec", "test", "proceed.log")) as f:
         log = f.read()
 
     assert "Parsing proceed pipeline specification" in log
@@ -94,12 +90,12 @@ def test_help():
 
 
 def test_invalid_input(tmp_path):
-    log_file = Path(tmp_path, "test_invalid_input.log").as_posix()
+    cli_args = ["no_such_file", '--out-dir', tmp_path.as_posix(), '--out-id', "test"]
     with raises(FileNotFoundError) as exception_info:
-        main(["no_such_file", "--log-file", log_file])
+        main(cli_args)
     assert 2 in exception_info.value.args
 
-    with open(log_file) as f:
+    with open(Path(tmp_path, "no_such_file", "test", "proceed.log")) as f:
         log = f.read()
 
     assert log.endswith("Parsing proceed pipeline specification from: no_such_file\n")

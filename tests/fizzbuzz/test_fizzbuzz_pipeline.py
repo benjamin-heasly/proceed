@@ -39,19 +39,18 @@ def fixture_digests(fixture_files):
 def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files, fixture_digests):
     # First run through the pipeline should succeed and see expected input and output files.
     pipeline_spec = fixture_files["fizzbuzz_pipeline_spec.yaml"].as_posix()
-    record = Path(tmp_path, 'fizzbuzz_record.yaml').as_posix()
-    log_file = Path(tmp_path, "fizzbuzz.log").as_posix()
     args = [
         pipeline_spec,
-        '--record', record,
-        '--log-file', log_file,
+        '--out-dir', tmp_path.as_posix(),
+        '--out-group', "fizzbuzz",
+        '--out-id', "test",
         '--args', f"data_dir={fixture_path.as_posix()}", f"work_dir={tmp_path.as_posix()}"
     ]
 
     exit_code = main(args)
     assert exit_code == 0
 
-    with open(record, 'r') as f:
+    with open(Path(tmp_path, "fizzbuzz", "test", "execution_record.yaml"), 'r') as f:
         results_yaml = f.read()
         pipeline_results = PipelineResult.from_yaml(results_yaml)
 
@@ -109,7 +108,7 @@ def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files, fixture
     assert filter_buzz_result == filter_buzz_expected
     assert filter_buzz_result.timing.is_complete()
 
-    with open(log_file) as f:
+    with open(Path(tmp_path, "fizzbuzz", "test", "proceed.log")) as f:
         log = f.read()
 
     assert "Parsing proceed pipeline specification" in log
@@ -119,12 +118,11 @@ def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files, fixture
 def test_pipeline_skip_done_steps(fizzbuzz_image, fixture_path, tmp_path, fixture_files, fixture_digests):
     # Repeat run through the pipeline should succeed and skip steps because they already have "done" files.
     pipeline_spec = fixture_files["fizzbuzz_pipeline_spec.yaml"].as_posix()
-    record = Path(tmp_path, 'fizzbuzz_record.yaml').as_posix()
-    log_file = Path(tmp_path, "fizzbuzz.log").as_posix()
     args = [
         pipeline_spec,
-        '--record', record,
-        '--log-file', log_file,
+        '--out-dir', tmp_path.as_posix(),
+        '--out-group', "fizzbuzz",
+        '--out-id', "test",
         '--args', f"data_dir={fixture_path.as_posix()}", f"work_dir={tmp_path.as_posix()}"
     ]
 
@@ -135,7 +133,7 @@ def test_pipeline_skip_done_steps(fizzbuzz_image, fixture_path, tmp_path, fixtur
     repeat_exit_code = main(args)
     assert repeat_exit_code == 0
 
-    with open(record, 'r') as f:
+    with open(Path(tmp_path, "fizzbuzz", "test", "execution_record.yaml"), 'r') as f:
         results_yaml = f.read()
         pipeline_results = PipelineResult.from_yaml(results_yaml)
 
@@ -172,7 +170,7 @@ def test_pipeline_skip_done_steps(fizzbuzz_image, fixture_path, tmp_path, fixtur
     )
     assert filter_buzz_result == filter_buzz_expected
 
-    with open(log_file) as f:
+    with open(Path(tmp_path, "fizzbuzz", "test", "proceed.log")) as f:
         log = f.read()
 
     assert "Parsing proceed pipeline specification" in log
