@@ -73,18 +73,20 @@ def run_step(step: Step) -> StepResult:
             detach=True
         )
         logging.info(f"Step '{step.name}': waiting for process to complete.")
+
+        # Tail the container logs and write new lines to the proceed log as they arrive.
+        log_stream = container.logs(stdout=True, stderr=True, stream=True)
+        for log_entry in log_stream:
+            log = log_entry.decode("utf-8")
+            logging.info(f"Step '{step.name}': {log}")
+
+        # Collect overall logs and status of the finished procedss.
         run_results = container.wait()
+        logs = container.logs(stdout=True, stderr=True, stream=False).decode("utf-8")
         step_exit_code=run_results['StatusCode']
         logging.info(f"Step '{step.name}': process completed with exit code {step_exit_code}")
 
-        # Retrieve container logs before removing the container.
-        # The sdk has a race condition around this, otherwise we could just do:
-        # log_bytes = client.containers.run( ... detach=False, remove=True)
-        logs = container.logs().decode("utf-8")
         container.remove()
-
-        if step_exit_code:
-            logging.info(f"Step '{step.name}': logs --\n {logs}")
 
         files_out = match_patterns_in_dirs(volume_dirs, step.match_out)
         logging.info(f"Step '{step.name}': found {count_matches(files_out)} output files.")

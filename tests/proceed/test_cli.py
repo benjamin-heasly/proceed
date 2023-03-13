@@ -49,7 +49,10 @@ def test_happy_pipeline(fixture_files, tmp_path, alpine_image):
     with open(Path(tmp_path, "happy_spec", "test", "proceed.log")) as f:
         log = f.read()
 
+    # The cli log should contain messages from the proceed runner itself.
+    # It should also contain the step logs.
     assert "Parsing proceed pipeline specification" in log
+    assert "quux\n" in log
     assert log.endswith("OK.\n")
 
 
