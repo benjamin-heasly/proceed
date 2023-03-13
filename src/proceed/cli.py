@@ -81,7 +81,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             pipeline_args[k] = v
 
     logging.info(f"Running pipeline with args: {pipeline_args}")
-    pipeline_result = run_pipeline(pipeline, pipeline_args)
+    pipeline_result = run_pipeline(pipeline, execution_path, pipeline_args)
 
     record_file = Path(execution_path, "execution_record.yaml")
     logging.info(f"Writing execution record to: {record_file}")

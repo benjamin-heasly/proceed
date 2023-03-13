@@ -98,7 +98,7 @@ class StepResult(YamlData):
     name: str = None
     image_id: str = None
     exit_code: int = None
-    logs: str = None
+    log_file: str = None
     timing: Timing = field(compare=False, default=None)
     files_done: dict[str, dict[str, str]] = field(default_factory=dict)
     files_in: dict[str, dict[str, str]] = field(default_factory=dict)

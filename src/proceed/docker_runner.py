@@ -7,7 +7,7 @@ from proceed.model import Pipeline, PipelineResult, Step, StepResult, Timing
 from proceed.file_matching import count_matches, match_patterns_in_dirs
 
 
-def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResult:
+def run_pipeline(original: Pipeline, execution_path: Path, args: dict[str, str] = {}) -> PipelineResult:
     logging.info("Starting pipeline run.")
 
     start = datetime.now(timezone.utc)
@@ -15,7 +15,9 @@ def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResul
     amended = original.with_args_applied(args).with_prototype_applied()
     step_results = []
     for step in amended.steps:
-        step_result = run_step(step)
+        log_stem = step.name.replace(" ", "_")
+        log_path = Path(execution_path, f"{log_stem}.log")
+        step_result = run_step(step, log_path)
         step_results.append(step_result)
         if step_result.exit_code:
             logging.info("Stopping pipeline run after error.")
@@ -34,7 +36,7 @@ def run_pipeline(original: Pipeline, args: dict[str, str] = {}) -> PipelineResul
     )
 
 
-def run_step(step: Step) -> StepResult:
+def run_step(step: Step, log_path: Path) -> StepResult:
     logging.info(f"Step '{step.name}': starting.")
 
     start = datetime.now(timezone.utc)
@@ -74,16 +76,18 @@ def run_step(step: Step) -> StepResult:
         )
         logging.info(f"Step '{step.name}': waiting for process to complete.")
 
-        # Tail the container logs and write new lines to the proceed log as they arrive.
-        log_stream = container.logs(stdout=True, stderr=True, stream=True)
-        for log_entry in log_stream:
-            log = log_entry.decode("utf-8")
-            logging.info(f"Step '{step.name}': {log}")
+        # Tail the container logs and write new lines to the step log and the proceed log as they arrive.
+        step_log_stream = container.logs(stdout=True, stderr=True, stream=True)
+        with open(log_path, 'w') as f:
+            for log_entry in step_log_stream:
+                log = log_entry.decode("utf-8")
+                f.write(log)
+                logging.info(f"Step '{step.name}': {log}")
 
         # Collect overall logs and status of the finished procedss.
         run_results = container.wait()
-        logs = container.logs(stdout=True, stderr=True, stream=False).decode("utf-8")
-        step_exit_code=run_results['StatusCode']
+        step_logs = container.logs(stdout=True, stderr=True, stream=False).decode("utf-8")
+        step_exit_code = run_results['StatusCode']
         logging.info(f"Step '{step.name}': process completed with exit code {step_exit_code}")
 
         container.remove()
@@ -100,7 +104,7 @@ def run_step(step: Step) -> StepResult:
             name=step.name,
             image_id=container.image.id,
             exit_code=step_exit_code,
-            logs=logs,
+            log_file=log_path.as_posix(),
             files_done=files_done,
             files_in=files_in,
             files_out=files_out,
@@ -108,18 +112,26 @@ def run_step(step: Step) -> StepResult:
         )
 
     except docker.errors.ImageNotFound as image_not_found_error:
-        logging.info(f"Step '{step.name}': error --\n {image_not_found_error.explanation}")
+        error_message = image_not_found_error.explanation
+        with open(log_path, 'w') as f:
+            f.write(error_message)
+
+        logging.info(f"Step '{step.name}': error --\n {error_message}")
         return StepResult(
             name=step.name,
-            logs=image_not_found_error.explanation,
+            log_file=log_path.as_posix(),
             timing=Timing(start.isoformat(sep="T"))
         )
 
     except docker.errors.APIError as api_error:
-        logging.info(f"Step '{step.name}': error --\n {api_error.explanation}")
+        error_message = api_error.explanation
+        with open(log_path, 'w') as f:
+            f.write(error_message)
+
+        logging.info(f"Step '{step.name}': error --\n {error_message}")
         return StepResult(
             name=step.name,
-            logs=api_error.explanation,
+            log_file=log_path.as_posix(),
             timing=Timing(start.isoformat(sep="T"))
         )
 

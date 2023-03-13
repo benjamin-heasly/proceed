@@ -37,7 +37,12 @@ def test_happy_pipeline(fixture_files, tmp_path, alpine_image):
         original=original,
         amended=original.with_args_applied({"arg_1": "quux"}),
         step_results=[
-            StepResult(name="hello", exit_code=0, image_id=alpine_image.id, logs="quux\n")
+            StepResult(
+                name="hello",
+                exit_code=0,
+                image_id=alpine_image.id,
+                log_file=Path(tmp_path, "happy_spec", "test", "hello.log").as_posix()
+            )
         ]
     )
 
@@ -45,6 +50,10 @@ def test_happy_pipeline(fixture_files, tmp_path, alpine_image):
         pipeline_result = PipelineResult.from_yaml(f.read())
 
     assert pipeline_result == expected_result
+
+    with open(pipeline_result.step_results[0].log_file) as f:
+        step_log = f.read()
+    assert step_log == "quux\n"
 
     with open(Path(tmp_path, "happy_spec", "test", "proceed.log")) as f:
         log = f.read()
@@ -69,7 +78,12 @@ def test_sad_pipeline(fixture_files, tmp_path, alpine_image):
         original=original,
         amended=original,
         step_results=[
-            StepResult(name="bad", exit_code=1, image_id=alpine_image.id, logs="ls: no_such_dir: No such file or directory\n")
+            StepResult(
+                name="bad",
+                exit_code=1,
+                image_id=alpine_image.id,
+                log_file=Path(tmp_path, "sad_spec", "test", "bad.log").as_posix()
+            )
         ]
     )
 
@@ -77,6 +91,10 @@ def test_sad_pipeline(fixture_files, tmp_path, alpine_image):
         pipeline_result = PipelineResult.from_yaml(f.read())
 
     assert pipeline_result == expected_result
+
+    with open(pipeline_result.step_results[0].log_file) as f:
+        step_log = f.read()
+    assert step_log == "ls: no_such_dir: No such file or directory\n"
 
     with open(Path(tmp_path, "sad_spec", "test", "proceed.log")) as f:
         log = f.read()
@@ -102,3 +120,41 @@ def test_invalid_input(tmp_path):
         log = f.read()
 
     assert log.endswith("Parsing proceed pipeline specification from: no_such_file\n")
+
+
+def test_default_output_dirs(fixture_files, tmp_path):
+    pipeline_spec = fixture_files['happy_spec.yaml'].as_posix()
+    cli_args = [pipeline_spec, '--out-dir', tmp_path.as_posix()]
+    exit_code = main(cli_args)
+    assert exit_code == 0
+
+    # We know the "group dir" that contains outputs for this pipeline spec is based on the spec file name.
+    # We don't know the "id dir" that contains outputs for this specific execution, that's based on a timestamp.
+    # But we know what to expect inside it, so we just search by matching.
+    group_dir = Path(tmp_path, "happy_spec")
+
+    # We should get an execution record.
+    yaml_out = list(group_dir.glob("**/*.yaml"))
+    assert len(yaml_out) == 1
+    assert yaml_out[0].name == "execution_record.yaml"
+
+    with open(yaml_out[0]) as f:
+        pipeline_result = PipelineResult.from_yaml(f.read())
+
+    # From the execution record we can discover the step log file(s).
+    assert len(pipeline_result.step_results) == 1
+    with open(pipeline_result.step_results[0].log_file) as f:
+         step_log = f.read()
+    assert step_log == "foo\n"
+
+    # We should also get a log for the overall execution.
+    proceed_log_out = list(group_dir.glob("**/proceed.log"))
+    assert len(proceed_log_out) == 1
+    assert proceed_log_out[0].name == "proceed.log"
+
+    with open(proceed_log_out[0]) as f:
+         proceed_log = f.read()
+
+    assert "Parsing proceed pipeline specification" in proceed_log
+    assert "foo\n" in proceed_log
+    assert proceed_log.endswith("OK.\n")

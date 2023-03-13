@@ -28,108 +28,113 @@ def fixture_path(request):
     return Path(this_file.parent, 'fixture_files')
 
 
-def test_step_image_not_found():
+def read_step_logs(step_result: StepResult) -> str:
+    with open(step_result.log_file, 'r') as f:
+        return f.read()
+
+
+def test_step_image_not_found(tmp_path):
     step = Step(name="image not found", image="no_such_image")
-    step_result = run_step(step)
+    step_result = run_step(step, Path(tmp_path, "step.log"))
     assert step_result.name == step.name
     assert step_result.image_id == None
     assert step_result.exit_code == None
-    assert "no_such_image, repository does not exist" in step_result.logs
+    assert "no_such_image, repository does not exist" in read_step_logs(step_result)
 
 
-def test_step_command_not_found(alpine_image):
+def test_step_command_not_found(alpine_image, tmp_path):
     step = Step(name="command not found", image=alpine_image.tags[0], command=["no_such_command"])
-    step_result = run_step(step)
+    step_result = run_step(step, Path(tmp_path, "step.log"))
     assert step_result.name == step.name
     assert step_result.image_id == None
     assert step_result.exit_code == None
-    assert '"no_such_command": executable file not found' in step_result.logs
+    assert '"no_such_command": executable file not found' in read_step_logs(step_result)
 
 
-def test_step_command_error(alpine_image):
+def test_step_command_error(alpine_image, tmp_path):
     step = Step(name="command error", image=alpine_image.tags[0], command=["ls", "no_such_dir"])
-    step_result = run_step(step)
+    step_result = run_step(step, Path(tmp_path, "step.log"))
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 1
-    assert "no_such_dir: No such file or directory" in step_result.logs
+    assert "no_such_dir: No such file or directory" in read_step_logs(step_result)
 
 
-def test_step_command_success(alpine_image):
+def test_step_command_success(alpine_image, tmp_path):
     step = Step(name="command success", image=alpine_image.tags[0], command=["echo", "hello to you"])
-    step_result = run_step(step)
+    step_result = run_step(step, Path(tmp_path, "step.log"))
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
-    assert "hello to you" in step_result.logs
+    assert "hello to you" in read_step_logs(step_result)
 
 
-def test_step_working_dir(alpine_image):
+def test_step_working_dir(alpine_image, tmp_path):
     step = Step(name="working dir", working_dir="/home", image=alpine_image.tags[0], command=["pwd"])
-    step_result = run_step(step)
+    step_result = run_step(step, Path(tmp_path, "step.log"))
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
-    assert step_result.logs == "/home\n"
+    assert read_step_logs(step_result) == "/home\n"
 
 
-def test_step_environment(alpine_image):
+def test_step_environment(alpine_image, tmp_path):
     step = Step(
         name="environment",
         environment={"ENV_VAR": "foo"},
         image=alpine_image.tags[0],
         command=["/bin/sh", "-c", "echo $ENV_VAR"]
     )
-    step_result = run_step(step)
+    step_result = run_step(step, Path(tmp_path, "step.log"))
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
-    assert step_result.logs == "foo\n"
+    assert read_step_logs(step_result) == "foo\n"
 
 
-def test_step_network_mode_none(alpine_image):
+def test_step_network_mode_none(alpine_image, tmp_path):
     step = Step(
         name="network mode none",
         network_mode="none",
         image=alpine_image.tags[0],
         command=["ifconfig"]
     )
-    step_result = run_step(step)
+    step_result = run_step(step, Path(tmp_path, "step.log"))
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
-    assert "eth0" not in step_result.logs
+    assert "eth0" not in read_step_logs(step_result)
 
 
-def test_step_network_mode_bridge(alpine_image):
+def test_step_network_mode_bridge(alpine_image, tmp_path):
     step = Step(
         name="network mode bridge",
         network_mode="bridge",
         image=alpine_image.tags[0],
         command=["ifconfig"]
     )
-    step_result = run_step(step)
+    step_result = run_step(step, Path(tmp_path, "step.log"))
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
-    assert "eth0" in step_result.logs
+    assert "eth0" in read_step_logs(step_result)
 
 
-def test_step_mac_address(alpine_image):
+def test_step_mac_address(alpine_image, tmp_path):
     step = Step(
         name="mac address",
         mac_address="aa:bb:cc:dd:ee:ff",
         image=alpine_image.tags[0],
         command=["ifconfig"]
     )
-    step_result = run_step(step)
+    step_result = run_step(step, Path(tmp_path, "step.log"))
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
-    assert "HWaddr AA:BB:CC:DD:EE:FF" in step_result.logs
+    assert "HWaddr AA:BB:CC:DD:EE:FF" in read_step_logs(step_result)
 
 
-def test_step_gpus(ubuntu_image):
+def test_step_gpus(ubuntu_image, tmp_path):
     # The ubuntu image, but not alpine, provides the "nvidia-smi" utility we want.
     step = Step(
         name="gpus",
@@ -137,7 +142,7 @@ def test_step_gpus(ubuntu_image):
         image=ubuntu_image.tags[0],
         command=["nvidia-smi"]
     )
-    step_result = run_step(step)
+    step_result = run_step(step, Path(tmp_path, "step.log"))
     assert step_result.name == step.name
 
     # Awkwardly, the result of this test depends on whether the host has docker "--gpus" support.
@@ -147,15 +152,15 @@ def test_step_gpus(ubuntu_image):
     if step_result.exit_code == 0:
         # Host seems to have docker "--gpus" support.
         assert step_result.timing.is_complete()
-        assert "NVIDIA-SMI" in step_result.logs
+        assert "NVIDIA-SMI" in read_step_logs(step_result)
     else:
         # Host seems not to have docker "--gpus" support, check for relevant error, as in:
         # https://github.com/NVIDIA/nvidia-docker/issues/1034
         assert not step_result.timing.is_complete()
-        assert 'could not select device driver "" with capabilities: [[gpu]]' in step_result.logs
+        assert 'could not select device driver "" with capabilities: [[gpu]]' in read_step_logs(step_result)
 
 
-def test_step_files_done(alpine_image, fixture_path):
+def test_step_files_done(alpine_image, fixture_path, tmp_path):
     fixture_dir = fixture_path.as_posix()
     step = Step(
         name="files done",
@@ -164,7 +169,7 @@ def test_step_files_done(alpine_image, fixture_path):
         volumes={fixture_dir: "/fixture_files"},
         match_done=["*.yaml", "*.ignore"]
     )
-    step_result = run_step(step)
+    step_result = run_step(step, Path(tmp_path, "step.log"))
 
     # The runner should find yaml files in the working dir, "tests/proceed/fixture_files".
     # The existence of these files should cause the step itself to be skipped.
@@ -179,10 +184,10 @@ def test_step_files_done(alpine_image, fixture_path):
     assert not step_result.files_out
     assert step_result.skipped
     assert step_result.exit_code is None
-    assert not step_result.logs
+    assert not step_result.log_file
 
 
-def test_step_files_in(alpine_image, fixture_path):
+def test_step_files_in(alpine_image, fixture_path, tmp_path):
     fixture_dir = fixture_path.as_posix()
     step = Step(
         name="files in",
@@ -191,7 +196,7 @@ def test_step_files_in(alpine_image, fixture_path):
         volumes={fixture_dir: "/fixture_files"},
         match_in=["*.yaml", "*.ignore"]
     )
-    step_result = run_step(step)
+    step_result = run_step(step, Path(tmp_path, "step.log"))
 
     # The runner should find yaml files in the working dir, "tests/proceed/fixture_files".
     # The existence of these files should be noted, and the step should run normally.
@@ -202,14 +207,14 @@ def test_step_files_in(alpine_image, fixture_path):
         }
     }
     assert step_result.exit_code == 0
-    assert step_result.logs == "hello files in\n"
+    assert read_step_logs(step_result) == "hello files in\n"
     assert step_result.files_in == expected_files
     assert not step_result.files_done
     assert not step_result.files_out
     assert not step_result.skipped
 
 
-def test_step_files_out(alpine_image, fixture_path):
+def test_step_files_out(alpine_image, fixture_path, tmp_path):
     fixture_dir = fixture_path.as_posix()
     step = Step(
         name="files out",
@@ -218,7 +223,7 @@ def test_step_files_out(alpine_image, fixture_path):
         volumes={fixture_dir: "/fixture_files"},
         match_out=["*.yaml", "*.ignore"]
     )
-    step_result = run_step(step)
+    step_result = run_step(step, Path(tmp_path, "step.log"))
 
     # The runner should find yaml files in the working dir, "tests/proceed/fixture_files".
     # The existence of these files should be noted, and the step should run normally.
@@ -229,14 +234,14 @@ def test_step_files_out(alpine_image, fixture_path):
         }
     }
     assert step_result.exit_code == 0
-    assert step_result.logs == "hello files out\n"
+    assert read_step_logs(step_result) == "hello files out\n"
     assert step_result.files_out == expected_files
     assert not step_result.files_in
     assert not step_result.files_done
     assert not step_result.skipped
 
 
-def test_pipeline_with_args(alpine_image):
+def test_pipeline_with_args(alpine_image, tmp_path):
     pipeline = Pipeline(
         args={
             "arg_1": "foo",
@@ -251,7 +256,7 @@ def test_pipeline_with_args(alpine_image):
         "ignored": "ignore me",
         "arg_1": "quux"
     }
-    pipeline_result = run_pipeline(pipeline, args)
+    pipeline_result = run_pipeline(pipeline, tmp_path, args)
     expected_amended = Pipeline(
         args={
             "arg_1": "quux",
@@ -263,8 +268,8 @@ def test_pipeline_with_args(alpine_image):
         ]
     )
     expected_step_results = [
-        StepResult(name="step 1", image_id=alpine_image.id, exit_code=0, logs="hello quux\n"),
-        StepResult(name="step 2", image_id=alpine_image.id, exit_code=0, logs="hello bar\n")
+        StepResult(name="step 1", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_1.log").as_posix()),
+        StepResult(name="step 2", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_2.log").as_posix())
     ]
     expected_result = PipelineResult(
         original=pipeline,
@@ -278,8 +283,11 @@ def test_pipeline_with_args(alpine_image):
     assert pipeline_result.timing.is_complete()
     assert all([step_result.timing.is_complete() for step_result in pipeline_result.step_results])
 
+    assert read_step_logs(pipeline_result.step_results[0]) == "hello quux\n"
+    assert read_step_logs(pipeline_result.step_results[1]) == "hello bar\n"
 
-def test_pipeline_with_environment(alpine_image):
+
+def test_pipeline_with_environment(alpine_image, tmp_path):
     pipeline = Pipeline(
         prototype=Step(
             environment={
@@ -302,10 +310,10 @@ def test_pipeline_with_environment(alpine_image):
             )
         ]
     )
-    pipeline_result = run_pipeline(pipeline)
+    pipeline_result = run_pipeline(pipeline, tmp_path)
     expected_step_results = [
-        StepResult(name="step 1", image_id=alpine_image.id, exit_code=0, logs="one two-a three-a\n"),
-        StepResult(name="step 2", image_id=alpine_image.id, exit_code=0, logs="one two-b three-b\n")
+        StepResult(name="step 1", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_1.log").as_posix()),
+        StepResult(name="step 2", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_2.log").as_posix())
     ]
     expected_result = PipelineResult(
         original=pipeline,
@@ -316,8 +324,11 @@ def test_pipeline_with_environment(alpine_image):
     assert pipeline_result.timing.is_complete()
     assert all([step_result.timing.is_complete() for step_result in pipeline_result.step_results])
 
+    assert read_step_logs(pipeline_result.step_results[0]) == "one two-a three-a\n"
+    assert read_step_logs(pipeline_result.step_results[1]) == "one two-b three-b\n"
 
-def test_pipeline_with_network_config(alpine_image):
+
+def test_pipeline_with_network_config(alpine_image, tmp_path):
     pipeline = Pipeline(
         prototype=Step(
             network_mode="none",
@@ -338,18 +349,18 @@ def test_pipeline_with_network_config(alpine_image):
             )
         ]
     )
-    pipeline_result = run_pipeline(pipeline)
+    pipeline_result = run_pipeline(pipeline, tmp_path)
 
     # First step should override the pipeline's network config.
     assert pipeline_result.step_results[0].name == pipeline.steps[0].name
     assert pipeline_result.step_results[0].image_id == alpine_image.id
     assert pipeline_result.step_results[0].exit_code == 0
-    assert "eth0" in pipeline_result.step_results[0].logs
-    assert "HWaddr AA:BB:CC:DD:EE:FF" in pipeline_result.step_results[0].logs
+    assert "eth0" in read_step_logs(pipeline_result.step_results[0])
+    assert "HWaddr AA:BB:CC:DD:EE:FF" in read_step_logs(pipeline_result.step_results[0])
 
     # Second step should inherit the pipeline's network config.
     assert pipeline_result.step_results[1].name == pipeline.steps[1].name
     assert pipeline_result.step_results[1].image_id == alpine_image.id
     assert pipeline_result.step_results[1].exit_code == 0
-    assert "eth0" not in pipeline_result.step_results[1].logs
-    assert "HWaddr" not in pipeline_result.step_results[1].logs
+    assert "eth0" not in read_step_logs(pipeline_result.step_results[1])
+    assert "HWaddr" not in read_step_logs(pipeline_result.step_results[1])
