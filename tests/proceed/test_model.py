@@ -2,10 +2,12 @@ from proceed.model import apply_args, Pipeline, Step
 
 pipeline_spec = """
   version: 0.0.42
+  description: Test of a pipeline
   args:
     arg_1: one
     arg_2: two
   prototype:
+    description: Test of a step prototype
     environment:
       env_1: one
       env_2: two
@@ -15,6 +17,7 @@ pipeline_spec = """
       /dir_shared: /foo/shared
   steps:
     - name: a
+      description: Test of a step -- a
       image: image-a
       volumes:
         /dir_a_1: /foo/a1
@@ -26,6 +29,7 @@ pipeline_spec = """
       command: ["command", "a"]
       working_dir: /foo/a1
     - name: b
+      description: Test of a step -- b
       image: image-b
       environment:
         env_3: three-b
@@ -41,8 +45,10 @@ def test_model_from_yaml():
     pipeline = Pipeline.from_yaml(pipeline_spec)
     expected_pipeline = Pipeline(
         version="0.0.42",
+        description="Test of a pipeline",
         args={"arg_1": "one", "arg_2": "two", },
         prototype=Step(
+            description="Test of a step prototype",
             environment={"env_1": "one", "env_2": "two"},
             network_mode="none",
             mac_address="11:22:33:44:55:66",
@@ -51,6 +57,7 @@ def test_model_from_yaml():
         steps=[
             Step(
                 name="a",
+                description="Test of a step -- a",
                 image="image-a",
                 environment={"env_3": "three-a"},
                 network_mode="host",
@@ -61,6 +68,7 @@ def test_model_from_yaml():
             ),
             Step(
                 name="b",
+                description="Test of a step -- b",
                 image="image-b",
                 environment={"env_3": "three-b"},
                 gpus=True,
@@ -93,6 +101,7 @@ def test_yaml_collection_style():
 def test_apply_args_to_step():
     step = Step(
         name="$name",
+        description="A step named $name",
         image="$org/$repo:$tag",
         volumes={
             "/host/$simple": "/container/$simple",
@@ -114,6 +123,7 @@ def test_apply_args_to_step():
     step_with_args_applied = step.with_args_applied(args)
     expected_step = step = Step(
         name="step_name",
+        description="A step named step_name",
         image="image_org/image_repo:image_tag",
         volumes={
             "/host/path_a": "/container/path_a",
@@ -147,6 +157,7 @@ def test_pipeline_accept_declared_args():
 def test_apply_args_to_pipeline():
     pipeline = Pipeline(
         version="0.0.$foo",
+        description="A pipeline with two steps",
         args={
             "foo": "should go unused",
             "arg": "$foo",
@@ -164,11 +175,11 @@ def test_apply_args_to_pipeline():
     }
 
     # Given args should apply to all steps.
-    # They should not apply to the pipeline's own version or args (these remain $placeholders in this example)
     # The new pipeline.args should reflect all the declared and given args, combined.
     pipeline_with_args_applied = pipeline.with_args_applied(args)
     expected_pipeline = Pipeline(
         version="0.0.$foo",
+        description="A pipeline with two steps",
         args={
             "foo": "should go unused",
             "arg": "$foo",
@@ -253,13 +264,22 @@ def test_apply_prototype_to_steps():
     pipeline = Pipeline(
         prototype=Step(
             name="prototype",
+            description="A prototype description",
             environment={"prototype_env": "prototype", "common_env": "prototype"},
             volumes={"/prototype_dir": "/prototype", "/common_dir": "/prototype"},
             image="image:prototype"
         ),
         steps=[
-            Step(name="step-a", environment={"common_env": "step-a", "step_env": "step-a"}, image="image:step-a"),
-            Step(name="step-b", volumes={"/common_dir": "/step-b", "/step_dir": "/step-b"}),
+            Step(
+                name="step-a",
+                description="A step description-- a",
+                environment={"common_env": "step-a", "step_env": "step-a"},
+                image="image:step-a"
+            ),
+            Step(
+                name="step-b",
+                volumes={"/common_dir": "/step-b", "/step_dir": "/step-b"}
+            ),
         ]
     )
     amended = pipeline.with_prototype_applied()
@@ -271,6 +291,7 @@ def test_apply_prototype_to_steps():
     expected = Pipeline(
         prototype=Step(
             name="prototype",
+            description="A prototype description",
             environment={"prototype_env": "prototype", "common_env": "prototype"},
             volumes={"/prototype_dir": "/prototype", "/common_dir": "/prototype"},
             image="image:prototype"
@@ -278,12 +299,14 @@ def test_apply_prototype_to_steps():
         steps=[
             Step(
                 name="step-a",
+                description="A step description-- a",
                 environment={"prototype_env": "prototype", "common_env": "step-a", "step_env": "step-a"},
                 volumes={"/prototype_dir": "/prototype", "/common_dir": "/prototype"},
                 image="image:step-a"
             ),
             Step(
                 name="step-b",
+                description="A prototype description",
                 environment={"prototype_env": "prototype", "common_env": "prototype"},
                 volumes={"/prototype_dir": "/prototype", "/common_dir": "/step-b", "/step_dir": "/step-b"},
                 image="image:prototype"

@@ -23,6 +23,7 @@ class Step(YamlData):
     """A computation step with required inputs, expected outputs, and container run parameters."""
 
     name: str = None
+    description: str = None
     image: str = None
     command: list[str] = field(default_factory=list)
 
@@ -42,6 +43,7 @@ class Step(YamlData):
         """Construct a new Step, the result of applying given args to string fields of this Step."""
         return Step(
             name=apply_args(self.name, args),
+            description=apply_args(self.description, args),
             image=apply_args(self.image, args),
             command=apply_args(self.command, args),
             volumes=apply_args(self.volumes, args),
@@ -62,6 +64,7 @@ class Step(YamlData):
 
         return Step(
             name=self.name or prototype.name,
+            description=self.description or prototype.description,
             image=self.image or prototype.image,
             command=self.command or prototype.command,
             volumes={**prototype.volumes, **self.volumes},
@@ -108,6 +111,7 @@ class Pipeline(YamlData):
     """Top-level container for Steps to run and other pipeline configuration."""
 
     version: str = proceed_model_version
+    description: str = None
     args: dict[str, str] = field(default_factory=dict)
     prototype: Step = None
     steps: list[Step] = field(default_factory=list)
@@ -131,6 +135,7 @@ class Pipeline(YamlData):
             amended_prototype = None
         return Pipeline(
             version=self.version,
+            description=self.description,
             args=combined_args,
             prototype=amended_prototype,
             steps=[step.with_args_applied(combined_args) for step in self.steps]
@@ -139,6 +144,7 @@ class Pipeline(YamlData):
     def with_prototype_applied(self) -> Self:
         return Pipeline(
             version=self.version,
+            description=self.description,
             args=self.args,
             prototype=self.prototype,
             steps=[step.with_prototype_applied(self.prototype) for step in self.steps]
