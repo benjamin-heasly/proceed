@@ -23,7 +23,11 @@ class Step(YamlData):
     """A computation step with required inputs, expected outputs, and container run parameters."""
 
     name: str = None
+    """What's in a name?"""
+
     description: str = None
+    """I'm a description."""
+
     image: str = None
     command: list[str] = field(default_factory=list)
 

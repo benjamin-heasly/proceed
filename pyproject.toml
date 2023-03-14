@@ -50,3 +50,13 @@ exclude = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/proceed"]
+
+[tool.hatch.envs.docs]
+dependencies = [
+  "sphinx",
+]
+
+[tool.hatch.envs.docs.scripts]
+# A long command!
+# This gets sphinx under control of hatch and pyproject.toml and eliminates the clunky sphinx Makefile.
+html = '''sphinx-build "docs/source" "docs/build" -b html -c docs/ -D project="$(hatch project metadata name)" -D release="$(hatch version)" -D author="Ben Heasly" {args}'''

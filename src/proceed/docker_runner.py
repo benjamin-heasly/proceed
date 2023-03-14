@@ -8,6 +8,14 @@ from proceed.file_matching import count_matches, match_patterns_in_dirs
 
 
 def run_pipeline(original: Pipeline, execution_path: Path, args: dict[str, str] = {}) -> PipelineResult:
+    """
+    Run a pipeline with all its steps and return results.
+
+    :param original: a Pipeline, as read from an input YAML spec
+    :return: a summary of Pipeline execution results.
+
+    """
+
     logging.info("Starting pipeline run.")
 
     start = datetime.now(timezone.utc)
