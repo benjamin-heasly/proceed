@@ -20,25 +20,71 @@ def apply_args(x: Any, args: dict[str, str]):
 
 @dataclass
 class Step(YamlData):
-    """A computation step with required inputs, expected outputs, and container run parameters."""
+    """Specification for a container-based processing step.
+
+    Most :class:`Step` attributes are optional, but :attr:`name` is required
+    in order to distinguish steps from each other, and :attr:`image` is required
+    in order to actually run anything.
+    """
 
     name: str = None
-    """What's in a name?"""
+    """Any name for the step, unique within a :class:`Pipeline` (required)."""
 
     description: str = None
-    """I'm a description."""
+    """Any description to save along with the step.
+
+    The step description is not used during pipeline execution.
+    It's provided as a convenience to support user documentation,
+    notes-to-self, audits, etc.
+
+    Unlike code comments or YAML comments, the description is saved
+    as part of the execution record.
+    """
 
     image: str = None
-    """What's in a name?"""
+    """The tag or id of the container image to run from (required).
+
+    The image is the most important part of each step!
+    It provides the step's executables, dependencies, and basic environment.
+
+
+    The image may be a human-readable tag of the form ``group/name:version``
+    (like on `Docker Hub <https://hub.docker.com/>`_) or a unique ``IMAGE ID``
+    (like the output of ``docker images``).
+
+    .. code-block:: yaml
+
+        steps:
+          - name: human readable example
+            image: mathworks/matlab:r2022b
+          - name: image id example
+            image: d209dd14c3c4
+    """
+
     command: list[str] = field(default_factory=list)
-    """What's in a name?"""
+    """The command to run inside the container.
+
+    The step command is passed to the entrypoint executable of the :attr:`image`.
+    To use the default ``cmd`` of the :attr:`image`, omit this :attr:`command`.
+
+    The command should be given as a list of string arguments.
+    The list form makes it clear which argument is which and avoids confusion
+    around spaces and quotes.
+
+    .. code-block:: yaml
+
+        steps:
+          - name: command example
+            image: ubuntu
+            command: ["echo", "hello world"]
+    """
 
     volumes: dict[str, Union[str, dict[str, str]]] = field(default_factory=dict)
     """Host directories to make available inside the step's container.
 
     This is a key-value mapping from host absolute paths to container absolute paths.
     The keys are strings (host absolute paths).
-    The values are either strings (container absolute paths) or detailed key-value mappings.
+    The values are strings (container absolute paths) or detailed key-value mappings.
 
     .. code-block:: yaml
 
@@ -55,27 +101,132 @@ class Step(YamlData):
         the container absolute path to bind (where the host dir will show up inside the container)
 
     mode
-        the read/write permission to give the container: "rw" for read plus write (the default), "ro" for read only
+        the read/write permission to give the container: ``rw`` for read plus write (the default), ``ro`` for read only
     """
 
     working_dir: str = None
-    """What's in a name?"""
+    """A working directory path within the container -- the initial shell ``pwd`` or Python ``os.getcwd()``."""
+
     match_done: list[str] = field(default_factory=list)
-    """What's in a name?"""
+    """File matching patterns to search for, before deciding to run the step.
+
+    This is a list of `glob <https://docs.python.org/3/library/glob.html>`_
+    patterns to search for before running the step.
+    Each of the step's :attr:`volumes` will be searched with the same list of patterns.
+
+    If any matches are found, these files will be noted in the execution record,
+    along with their content digests, and the step will be skipped.
+    This is intended as a convenience to avoid redundant processing.
+    To make a step run unconditionally, omit :attr:`match_done`.
+
+    .. code-block:: yaml
+
+        steps:
+          - name: match done example
+            match_done:
+              - one/specific/file.txt
+              - any/text/*.txt
+              - any/text/any/subdir/**/*.txt
+    """
+
     match_in: list[str] = field(default_factory=list)
-    """What's in a name?"""
+    """File matching patterns to search for, before running the step.
+
+    This is a list of `glob <https://docs.python.org/3/library/glob.html>`_
+    patterns to search for before running the step.
+    Each of the step's :attr:`volumes` will be searched with the same list of patterns.
+
+    Any matches found will be noted in the execution record.
+    :attr:`match_in` is intended to support audits by accounting for the input files
+    that went into a step, along with their content digests.
+    Unlike :attr:`match_done`, :attr:`match_in` does not affect step execution.
+
+    .. code-block:: yaml
+
+        steps:
+          - name: match in example
+            match_in:
+              - one/specific/file.txt
+              - any/text/*.txt
+              - any/text/any/subdir/**/*.txt
+    """
+
     match_out: list[str] = field(default_factory=list)
-    """What's in a name?"""
+    """File matching patterns to search for, after running the step.
+
+    This is a list of `glob <https://docs.python.org/3/library/glob.html>`_
+    patterns to search for after running the step.
+    Each of the step's :attr:`volumes` will be searched with the same list of patterns.
+
+    Any matches found will be noted in the execution record.
+    :attr:`match_out` is intended to support audits by accounting for the output files
+    that came from a step, along with their content digests.
+    Unlike :attr:`match_done`, :attr:`match_out` does not affect step execution.
+
+    .. code-block:: yaml
+
+        steps:
+          - name: match out example
+            match_out:
+              - one/specific/file.txt
+              - any/text/*.txt
+              - any/text/any/subdir/**/*.txt
+    """
 
     environment: dict[str, str] = field(default_factory=dict)
-    """What's in a name?"""
+    """Environment variables to set inside the step's container.
+
+    This is a key-value mapping from environment variable names to values.
+    The keys and values are both strings.
+
+    .. code-block:: yaml
+
+        steps:
+          - name: environment example
+            environment:
+              MLM_LICENSE_FILE: /license.lic
+              foo: bar
+    """
+
     gpus: bool = None
-    """What's in a name?"""
+    """Whether or not to request GPU device support.
+
+    When :attr:`gpus` is ``true``, request GPU device support similar to the
+    Docker run ``--gpus all``
+    `resource request <https://docs.docker.com/config/containers/resource_constraints/#gpu>`_.
+    """
 
     network_mode: str = None
-    """What's in a name?"""
+    """How to configure the container's network environment.
+
+    When provided, this should be one of the following
+    `network modes <https://docker-py.readthedocs.io/en/stable/containers.html>`_:
+
+    bridge
+      create an isolated network environment for the container (default)
+
+    none
+      disable networking for the container
+
+    container:<name|id>
+      reuse the network of another container, by name or id
+
+    host
+      make the container's network environment just like the host's
+    """
+
     mac_address: str = None
-    """What's in a name?"""
+    """Aribtrary MAC address to set in the container.
+
+    Perhaps surprisingly, containers can have arbitrary `MAC <https://en.wikipedia.org/wiki/MAC_address>`_
+    "hardware" addresses.
+
+    .. code-block:: yaml
+
+        steps:
+          - name: mac address example
+            mac_address: aa:bb:cc:dd:ee:ff
+    """
 
     def _with_args_applied(self, args: dict[str, str]) -> Self:
         """Construct a new Step, the result of applying given args to string fields of this Step."""

@@ -13,3 +13,4 @@ extensions=[
 ]
 autosummary_generate=True
 autodoc_typehints = "description"
+autodoc_member_order = 'bysource'
