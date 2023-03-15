@@ -54,7 +54,7 @@ def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files, fixture
         results_yaml = f.read()
         pipeline_results = PipelineResult.from_yaml(results_yaml)
 
-    assert pipeline_results.timing.is_complete()
+    assert pipeline_results.timing._is_complete()
     assert len(pipeline_results.step_results) == 3
 
     classify_result = pipeline_results.step_results[0]
@@ -72,7 +72,7 @@ def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files, fixture
         }
     )
     assert classify_result == classify_expected
-    assert classify_result.timing.is_complete()
+    assert classify_result.timing._is_complete()
     with open(classify_result.log_file, 'r') as f:
         classify_logs = f.read()
     assert classify_logs == "OK.\n"
@@ -92,7 +92,7 @@ def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files, fixture
         }
     )
     assert filter_fizz_result == filter_fizz_expected
-    assert filter_fizz_result.timing.is_complete()
+    assert filter_fizz_result.timing._is_complete()
     with open(filter_fizz_result.log_file, 'r') as f:
         filter_fizz_logs = f.read()
     assert filter_fizz_logs == "OK.\n"
@@ -112,7 +112,7 @@ def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files, fixture
         }
     )
     assert filter_buzz_result == filter_buzz_expected
-    assert filter_buzz_result.timing.is_complete()
+    assert filter_buzz_result.timing._is_complete()
     with open(filter_buzz_result.log_file, 'r') as f:
         filter_buzz_logs = f.read()
     assert filter_buzz_logs == "OK.\n"
@@ -146,7 +146,7 @@ def test_pipeline_skip_done_steps(fizzbuzz_image, fixture_path, tmp_path, fixtur
         results_yaml = f.read()
         pipeline_results = PipelineResult.from_yaml(results_yaml)
 
-    assert pipeline_results.timing.is_complete()
+    assert pipeline_results.timing._is_complete()
     assert len(pipeline_results.step_results) == 3
 
     classify_result = pipeline_results.step_results[0]

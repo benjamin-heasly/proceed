@@ -60,3 +60,7 @@ dependencies = [
 # A long command!
 # This gets sphinx under control of hatch and pyproject.toml and eliminates the clunky sphinx Makefile.
 html = '''sphinx-build "docs/source" "docs/build" -b html -c docs/ -D project="$(hatch project metadata name)" -D release="$(hatch version)" -D author="Ben Heasly" {args}'''
+clean = [
+  "rm -rf docs/build",
+  "rm -rf docs/source/generated"
+]

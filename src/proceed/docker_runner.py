@@ -20,7 +20,7 @@ def run_pipeline(original: Pipeline, execution_path: Path, args: dict[str, str] 
 
     start = datetime.now(timezone.utc)
 
-    amended = original.with_args_applied(args).with_prototype_applied()
+    amended = original._with_args_applied(args)._with_prototype_applied()
     step_results = []
     for step in amended.steps:
         log_stem = step.name.replace(" ", "_")

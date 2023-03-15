@@ -2,14 +2,14 @@
 # General project config, like project name and version, should stay in pyproject.toml.
 # We can pass general project values to sphinx-build using the -D command line option.
 
-templates_path=["source/_templates"]
-html_static_path=["source/_static"]
+templates_path=["_templates"]
+html_static_path=["_static"]
 
-html_theme="alabaster"
+html_theme="pyramid"
 
 extensions=[
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
 ]
 autosummary_generate=True
-autodoc_typehints = "both"
+autodoc_typehints = "description"

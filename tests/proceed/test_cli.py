@@ -35,7 +35,7 @@ def test_happy_pipeline(fixture_files, tmp_path, alpine_image):
 
     expected_result = PipelineResult(
         original=original,
-        amended=original.with_args_applied({"arg_1": "quux"}),
+        amended=original._with_args_applied({"arg_1": "quux"}),
         step_results=[
             StepResult(
                 name="hello",

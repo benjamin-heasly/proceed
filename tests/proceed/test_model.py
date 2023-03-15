@@ -120,7 +120,7 @@ def test_apply_args_to_step():
         "arg_1": "command_first_arg",
         "arg_2_prefix": "command_second_arg_prefix"
     }
-    step_with_args_applied = step.with_args_applied(args)
+    step_with_args_applied = step._with_args_applied(args)
     expected_step = step = Step(
         name="step_name",
         description="A step named step_name",
@@ -146,7 +146,7 @@ def test_pipeline_accept_declared_args():
         "replace": "I was replaced",
         "ignore": "Ignore me"
     }
-    combined_args = pipeline.combine_args(args)
+    combined_args = pipeline._combine_args(args)
     expected_args = {
         "keep_default": "default",
         "replace": "I was replaced",
@@ -176,7 +176,7 @@ def test_apply_args_to_pipeline():
 
     # Given args should apply to all steps.
     # The new pipeline.args should reflect all the declared and given args, combined.
-    pipeline_with_args_applied = pipeline.with_args_applied(args)
+    pipeline_with_args_applied = pipeline._with_args_applied(args)
     expected_pipeline = Pipeline(
         version="0.0.$foo",
         description="A pipeline with two steps",
@@ -282,7 +282,7 @@ def test_apply_prototype_to_steps():
             ),
         ]
     )
-    amended = pipeline.with_prototype_applied()
+    amended = pipeline._with_prototype_applied()
 
     # The pipeline prototype can supply field values for each step.
     # Where a step has a default field value, it should take the corresponding value from the prototype.

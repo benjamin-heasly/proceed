@@ -29,21 +29,55 @@ class Step(YamlData):
     """I'm a description."""
 
     image: str = None
+    """What's in a name?"""
     command: list[str] = field(default_factory=list)
+    """What's in a name?"""
 
     volumes: dict[str, Union[str, dict[str, str]]] = field(default_factory=dict)
+    """Host directories to make available inside the step's container.
+
+    This is a key-value mapping from host absolute paths to container absolute paths.
+    The keys are strings (host absolute paths).
+    The values are either strings (container absolute paths) or detailed key-value mappings.
+
+    .. code-block:: yaml
+
+        steps:
+          - name: volumes example
+            volumes:
+              /host/simple: /simple
+              /host/read-only: {bind: /read-only, mode: ro}
+              /host/read-write: {bind: /read-write, mode: rw}
+
+    The detailed style lets you specify the container path to bind as well as the read/write permissions.
+
+    bind
+        the container absolute path to bind (where the host dir will show up inside the container)
+
+    mode
+        the read/write permission to give the container: "rw" for read plus write (the default), "ro" for read only
+    """
+
     working_dir: str = None
+    """What's in a name?"""
     match_done: list[str] = field(default_factory=list)
+    """What's in a name?"""
     match_in: list[str] = field(default_factory=list)
+    """What's in a name?"""
     match_out: list[str] = field(default_factory=list)
+    """What's in a name?"""
 
     environment: dict[str, str] = field(default_factory=dict)
+    """What's in a name?"""
     gpus: bool = None
+    """What's in a name?"""
 
     network_mode: str = None
+    """What's in a name?"""
     mac_address: str = None
+    """What's in a name?"""
 
-    def with_args_applied(self, args: dict[str, str]) -> Self:
+    def _with_args_applied(self, args: dict[str, str]) -> Self:
         """Construct a new Step, the result of applying given args to string fields of this Step."""
         return Step(
             name=apply_args(self.name, args),
@@ -61,7 +95,7 @@ class Step(YamlData):
             mac_address=apply_args(self.mac_address, args),
         )
 
-    def with_prototype_applied(self, prototype: Self) -> Self:
+    def _with_prototype_applied(self, prototype: Self) -> Self:
         """Construct a new Step, the result of accepting default values from the given prototype."""
         if not prototype:
             return self
@@ -91,7 +125,7 @@ class Timing(YamlData):
     finish: str = None
     duration: float = None
 
-    def is_complete(self):
+    def _is_complete(self):
         return self.start is not None and self.finish is not None and self.duration > 0
 
 
@@ -120,7 +154,7 @@ class Pipeline(YamlData):
     prototype: Step = None
     steps: list[Step] = field(default_factory=list)
 
-    def combine_args(self, args: dict[str, str]) -> dict[str, str]:
+    def _combine_args(self, args: dict[str, str]) -> dict[str, str]:
         """Update self.args with given args values, but don't add new keys."""
         accepted_args = {}
         for k in self.args.keys():
@@ -130,11 +164,11 @@ class Pipeline(YamlData):
                 accepted_args[k] = self.args[k]
         return accepted_args
 
-    def with_args_applied(self, args: dict[str, str]) -> Self:
+    def _with_args_applied(self, args: dict[str, str]) -> Self:
         """Construct a new Step, the result of applying given args to string fields of this Step."""
-        combined_args = self.combine_args(args)
+        combined_args = self._combine_args(args)
         if self.prototype:
-            amended_prototype = self.prototype.with_args_applied(combined_args)
+            amended_prototype = self.prototype._with_args_applied(combined_args)
         else:
             amended_prototype = None
         return Pipeline(
@@ -142,16 +176,16 @@ class Pipeline(YamlData):
             description=self.description,
             args=combined_args,
             prototype=amended_prototype,
-            steps=[step.with_args_applied(combined_args) for step in self.steps]
+            steps=[step._with_args_applied(combined_args) for step in self.steps]
         )
 
-    def with_prototype_applied(self) -> Self:
+    def _with_prototype_applied(self) -> Self:
         return Pipeline(
             version=self.version,
             description=self.description,
             args=self.args,
             prototype=self.prototype,
-            steps=[step.with_prototype_applied(self.prototype) for step in self.steps]
+            steps=[step._with_prototype_applied(self.prototype) for step in self.steps]
         )
 
 

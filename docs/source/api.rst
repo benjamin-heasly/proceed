@@ -1,9 +1,9 @@
 API
 ===
 
-
 .. autosummary::
    :toctree: generated
+   :nosignatures:
 
    proceed.model.Pipeline
    proceed.model.PipelineResult

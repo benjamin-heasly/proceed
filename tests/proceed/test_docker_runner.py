@@ -151,12 +151,12 @@ def test_step_gpus(ubuntu_image, tmp_path):
     # So, we'll check for two expected outcomes, assuming we at least *requested* the gpu.
     if step_result.exit_code == 0:
         # Host seems to have docker "--gpus" support.
-        assert step_result.timing.is_complete()
+        assert step_result.timing._is_complete()
         assert "NVIDIA-SMI" in read_step_logs(step_result)
     else:
         # Host seems not to have docker "--gpus" support, check for relevant error, as in:
         # https://github.com/NVIDIA/nvidia-docker/issues/1034
-        assert not step_result.timing.is_complete()
+        assert not step_result.timing._is_complete()
         assert 'could not select device driver "" with capabilities: [[gpu]]' in read_step_logs(step_result)
 
 
@@ -280,8 +280,8 @@ def test_pipeline_with_args(alpine_image, tmp_path):
 
     # Timing details are not used in comparisons above -- timestamps are too brittle.
     # But we do want to check that timing results got filled in.
-    assert pipeline_result.timing.is_complete()
-    assert all([step_result.timing.is_complete() for step_result in pipeline_result.step_results])
+    assert pipeline_result.timing._is_complete()
+    assert all([step_result.timing._is_complete() for step_result in pipeline_result.step_results])
 
     assert read_step_logs(pipeline_result.step_results[0]) == "hello quux\n"
     assert read_step_logs(pipeline_result.step_results[1]) == "hello bar\n"
@@ -317,12 +317,12 @@ def test_pipeline_with_environment(alpine_image, tmp_path):
     ]
     expected_result = PipelineResult(
         original=pipeline,
-        amended=pipeline.with_prototype_applied(),
+        amended=pipeline._with_prototype_applied(),
         step_results=expected_step_results
     )
     assert pipeline_result == expected_result
-    assert pipeline_result.timing.is_complete()
-    assert all([step_result.timing.is_complete() for step_result in pipeline_result.step_results])
+    assert pipeline_result.timing._is_complete()
+    assert all([step_result.timing._is_complete() for step_result in pipeline_result.step_results])
 
     assert read_step_logs(pipeline_result.step_results[0]) == "one two-a three-a\n"
     assert read_step_logs(pipeline_result.step_results[1]) == "one two-b three-b\n"
