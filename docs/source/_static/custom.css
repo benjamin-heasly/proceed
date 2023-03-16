@@ -1,0 +1,6 @@
+/* Leave some space after class signatures.
+   Not sure why this is so crunchd by default.
+*/
+.sig {
+    padding-bottom: 1em
+}
