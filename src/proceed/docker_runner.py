@@ -3,11 +3,11 @@ from typing import Union
 from datetime import datetime, timezone
 from pathlib import Path
 import docker
-from proceed.model import Pipeline, PipelineResult, Step, StepResult, Timing
+from proceed.model import Pipeline, ExecutionRecord, Step, StepResult, Timing
 from proceed.file_matching import count_matches, match_patterns_in_dirs
 
 
-def run_pipeline(original: Pipeline, execution_path: Path, args: dict[str, str] = {}) -> PipelineResult:
+def run_pipeline(original: Pipeline, execution_path: Path, args: dict[str, str] = {}) -> ExecutionRecord:
     """
     Run a pipeline with all its steps and return results.
 
@@ -36,7 +36,7 @@ def run_pipeline(original: Pipeline, execution_path: Path, args: dict[str, str] 
 
     logging.info("Finished pipeline run.")
 
-    return PipelineResult(
+    return ExecutionRecord(
         original=original,
         amended=amended,
         step_results=step_results,

@@ -20,7 +20,7 @@ def apply_args(x: Any, args: dict[str, str]):
 
 @dataclass
 class Step(YamlData):
-    """Specification for a container-based processing step.
+    """Specifies a container-based processing step.
 
     Most :class:`Step` attributes are optional, but :attr:`name` is required
     in order to distinguish steps from each other, and :attr:`image` is required
@@ -38,19 +38,18 @@ class Step(YamlData):
     notes-to-self, audits, etc.
 
     Unlike code comments or YAML comments, the description is saved
-    as part of the execution record.
+    as part of the :class:`ExecutionRecord`.
     """
 
     image: str = None
     """The tag or id of the container image to run from (required).
 
-    The image is the most important part of each step!
+    The :attr:`image` is the most important part of each step!
     It provides the step's executables, dependencies, and basic environment.
 
-
     The image may be a human-readable tag of the form ``group/name:version``
-    (like on `Docker Hub <https://hub.docker.com/>`_) or a unique ``IMAGE ID``
-    (like the output of ``docker images``).
+    (like on `Docker Hub <https://hub.docker.com/>`_) or a unique id
+    (like the ``IMAGE ID`` output of ``docker images``).
 
     .. code-block:: yaml
 
@@ -114,7 +113,7 @@ class Step(YamlData):
     patterns to search for before running the step.
     Each of the step's :attr:`volumes` will be searched with the same list of patterns.
 
-    If any matches are found, these files will be noted in the execution record,
+    If any matches are found, these files will be noted in the :class:`ExecutionRecord`,
     along with their content digests, and the step will be skipped.
     This is intended as a convenience to avoid redundant processing.
     To make a step run unconditionally, omit :attr:`match_done`.
@@ -136,7 +135,7 @@ class Step(YamlData):
     patterns to search for before running the step.
     Each of the step's :attr:`volumes` will be searched with the same list of patterns.
 
-    Any matches found will be noted in the execution record.
+    Any matches found will be noted in the :class:`ExecutionRecord`.
     :attr:`match_in` is intended to support audits by accounting for the input files
     that went into a step, along with their content digests.
     Unlike :attr:`match_done`, :attr:`match_in` does not affect step execution.
@@ -158,7 +157,7 @@ class Step(YamlData):
     patterns to search for after running the step.
     Each of the step's :attr:`volumes` will be searched with the same list of patterns.
 
-    Any matches found will be noted in the execution record.
+    Any matches found will be noted in the :class:`ExecutionRecord`.
     :attr:`match_out` is intended to support audits by accounting for the output files
     that came from a step, along with their content digests.
     Unlike :attr:`match_done`, :attr:`match_out` does not affect step execution.
@@ -191,9 +190,15 @@ class Step(YamlData):
     gpus: bool = None
     """Whether or not to request GPU device support.
 
-    When :attr:`gpus` is ``true``, request GPU device support similar to the
+    When :attr:`gpus` is ``True``, request GPU device support similar to the
     Docker run ``--gpus all``
     `resource request <https://docs.docker.com/config/containers/resource_constraints/#gpu>`_.
+
+    .. code-block:: yaml
+
+        steps:
+          - name: gpus example
+            gpus: true
     """
 
     network_mode: str = None
@@ -270,11 +275,22 @@ class Step(YamlData):
 
 @dataclass
 class Timing(YamlData):
-    """Keep track of a start time, an end time, and the duration."""
+    """Records :class:`Step` and :class:`Pipeline` execution times and durations."""
 
     start: str = None
+    """Datetime UTC when a :class:`Step` or :class:`Pipeline` started running.
+
+    The datetime uses `ISO <https://en.wikipedia.org/wiki/ISO_8601>`_ format ``YYYY-MM-DDTHH:MM:SS.mmmmmm``.
+    """
+
     finish: str = None
+    """Datetime UTC when a :class:`Step` or :class:`Pipeline` finished running.
+
+    The datetime uses `ISO <https://en.wikipedia.org/wiki/ISO_8601>`_ format ``YYYY-MM-DDTHH:MM:SS.mmmmmm``.
+    """
+
     duration: float = None
+    """Duration in seconds from :attr:`start` to :attr:`finish`."""
 
     def _is_complete(self):
         return self.start is not None and self.finish is not None and self.duration > 0
@@ -282,28 +298,295 @@ class Timing(YamlData):
 
 @dataclass
 class StepResult(YamlData):
-    """The results of running a Step process."""
+    """Records what happened when a :class:`Step` ran."""
 
     name: str = None
+    """The name of the :class:`Step` that ran."""
+
     image_id: str = None
+    """The unique id of the :attr:`Step.image` that was used.
+
+    This :attr:`image_id` is always a unique id
+    (like the ``IMAGE ID`` output of ``docker images``),
+    even if the step's :attr:`Step.image` was given as a human-readable tag.
+    This avoids ambiguitiy from mutable tags like ``:latest``.
+    """
+
     exit_code: int = None
+    """The exit code / status code of the step's container process.
+
+    Exit code ``0`` is interpreted as success, nonzero as failure.
+    """
+
     log_file: str = None
+    """The host path to the log file with step console output (stdout and stderr)."""
+
     timing: Timing = field(compare=False, default=None)
+    """Start datetime, finish datetime, and duration for the step's container process."""
+
     files_done: dict[str, dict[str, str]] = field(default_factory=dict)
+    """Files that matched the :attr:`Step.match_done` pattern.
+
+    This is a key-value mapping from host :attr:`Step.volumes` paths to matched files.
+    The keys are strings (host volume paths).
+    The values are nested key-value mappings,
+    where the keys are matched file paths within a volume
+    and the values are content hash digests of the matched files.
+
+    .. code-block:: yaml
+
+        step_results:
+          - name: files done example
+            files_done:
+              /host/volume: {done_file.txt: 'sha256:5f386141...'}
+            skipped: true
+
+    When :attr:`files_done` is nonempty the :class:`Step` is considered
+    to be already complete before running, and :attr:`skipped` should be ``True``.
+    """
+
     files_in: dict[str, dict[str, str]] = field(default_factory=dict)
+    """Files that matched the :attr:`Step.match_in` pattern.
+
+    This is a key-value mapping from host :attr:`Step.volumes` paths to matched files.
+    The keys are strings (host volume paths).
+    The values are nested key-value mappings,
+    where the keys are matched file paths within a volume
+    and the values are content hash digests of the matched files.
+
+    .. code-block:: yaml
+
+        step_results:
+          - name: files in example
+            files_in:
+              /host/volume/a: {first_match.txt: 'sha256:93d4e5c7...', second_match.txt: 'sha256:d1b54ec5...'}
+              /host/volume/b: {third_match.txt: 'sha256:a4619a89...'}
+
+    Unlike :attr:`files_done`, :attr:`files_in` does not affect step execution.
+    :attr:`files_in` is intended to support auditing for reproducibility
+    and comparisons to files used in other steps or pipeline executions.
+    """
+
     files_out: dict[str, dict[str, str]] = field(default_factory=dict)
+    """Files that matched the :attr:`Step.match_out` pattern.
+
+    This is a key-value mapping from host :attr:`Step.volumes` paths to matched files.
+    The keys are strings (host volume paths).
+    The values are nested key-value mappings,
+    where the keys are matched file paths within a volume
+    and the values are content hash digests of the matched files.
+
+    .. code-block:: yaml
+
+        step_results:
+          - name: files out example
+            files_out:
+              /host/volume/a: {first_match.txt: 'sha256:93d4e5c7...', second_match.txt: 'sha256:d1b54ec5...'}
+              /host/volume/b: {third_match.txt: 'sha256:a4619a89...'}
+
+    Unlike :attr:`files_done`, :attr:`files_out` does not affect step execution.
+    :attr:`files_out` is intended to support auditing for reproducibility
+    and comparisons to files used in other steps or pipeline executions.
+    """
+
     skipped: bool = False
+    """Whether a step was skipped (``True``) or actually executed (``False``).
+
+    .. code-block:: yaml
+
+        step_results:
+          - name: step skipped example
+            skipped: true
+            files_done:
+              /host/volume: {done_file.txt: 'sha256:5f386141...'}
+
+    When :attr:`files_done` is nonempty the :class:`Step` is considered
+    to be already complete before running, and :attr:`skipped` should be ``True``.
+    """
 
 
 @dataclass
 class Pipeline(YamlData):
-    """Top-level container for Steps to run and other pipeline configuration."""
+    """Specifies top-level pipeline configuration and processing steps.
+
+    Most :class:`Pipeline` attributes are optional, but :attr:`steps` is required
+    in order to actually run anything.
+    """
 
     version: str = proceed_model_version
+    """Which version of the Proceed :class:`Pipeline` specification, itself.
+
+    You don't need to set the :attr:`version`.
+    It might be used by Proceed iteslf to check for version compatibility.
+    """
+
     description: str = None
+    """Any description to save along with the pipeline.
+
+    The pipeline description is not used during execution.
+    It's provided as a convenience to support user documentation,
+    notes-to-self, audits, etc.
+
+    Unlike code comments or YAML comments, the description is saved
+    as part of the :class:`ExecutionRecord`.
+    """
+
     args: dict[str, str] = field(default_factory=dict)
+    """Expected arguments that apply to the pipeline specification at runtime.
+
+    This is a key-value mapping from arg names to default values.
+    The keys and values are both strings.
+
+    Pipeline :attr:`args` allow for controlled, explicit configuration of the
+    pipeline at runtime.  This is intended to make pipelines somewhat dynamic
+    and portable without losing track of the dynamic values that were actually
+    used.
+
+    Before pipeline execution, given and default args values will be merged
+    then applied to the pipeline's :attr:`prototype` and :attr:`steps`.
+    This means occurrences of arg names prefixed with ``$`` or surrounded with
+    ``${ ... }`` will be replaced with the corresponding arg value
+    (see YAML examples below).
+
+    After execution, the arg values that were used as well as the amended
+    :attr:`prototype` and :attr:`steps` will be saved in the :class:`ExecutionRecord`.
+    This should reduce guesswork about what was actually executed.
+
+    Here are two examples of how you might use :attr:`args`:
+
+    Host-specific ``data_dir``
+      Your laptop might have a folder with data files in it, and your
+      collaborators might have similar folders on their laptops.  You could
+      write a pipeline  that expects a ``data_dir`` arg, allowing the
+      host-specific ``data_dir`` to be supplied at runtime.  This way everyone
+      could use the exact same pipeline specification.
+
+    Daily ``data_file``
+      You might have a pipeline that runs once a day, to process that day's
+      data.  You could write a pipeline that expects a ``data_file`` arg,
+      allowing the name of each day's data file to be supplied at runtime.
+      The same exact pipeline specification could be reused each day.
+
+    Here's an example YAML pipeline spec that declares two expected
+    :attr:`args` and a step that makes use of the args as
+    ``$data_dir`` (prefix style) and ``${data_file}`` (surrounding style).
+
+    .. code-block:: yaml
+
+        args:
+          data_dir: /default/data_dir
+          data_file: default_file
+        steps:
+          - name: args example
+            image: ubuntu
+            command: ["echo", "Working on: $data_dir/${data_file}.txt"]
+
+    Here's an example YAML :class:`ExecutionRecord` for that same pipeline.
+    In this example, let's assume that a custom ``data_dir`` was supplied
+    at runtime as ``data_dir=/custom/data_dir``.  Let's assume the
+    ``data_file`` was left with its default value.
+
+    .. code-block:: yaml
+
+        original:
+          args:
+            data_dir: /default/data_dir
+            data_file: default_file
+          steps:
+            - name: args example
+              image: ubuntu
+              command: ["echo", "Working on: $data_dir/${data_file}.txt"]
+        amended:
+          args:
+            data_dir: /custom/data_dir
+            data_file: default_file
+          steps:
+            - name: args example
+              image: ubuntu
+              command: ["echo", "Working on: /custom/data_dir/default_file.txt"]
+
+    The ``original`` is just the same as the original pipeline spec.
+
+    The ``amended`` :attr:`args` are all the exact values used at execution time,
+    whether custom or default.  The ``amended`` :attr:`steps` have had
+    ``$`` and ``${ ... }`` placeholders replaced by concrete values.
+    It's the ``amended`` steps that are actually executed.
+    """
+
     prototype: Step = None
+    """A :class:`Step` or partial :class:`Step` with attributes that apply to all :attr:`steps` in the pipeline.
+
+    The :attr:`prototype` can have the same attributes as any :class:`Step`.
+    You can use prototype attributes to "factor out" attribute values that
+    pipeline :attr:`steps` have in common.
+
+    Before pipeline execution, attributes provided for the :attr:`prototype`
+    will be applied to each step and used if the step doesn't already have
+    its own value for the same attribute.
+
+    After execution, the amended steps will be saved in the :class:`ExecutionRecord`.
+    This should reduce guesswork about what was actually executed.
+
+    Here's an example YAML pipeline spec with a :attr:`prototype` that specifies
+    the :attr:`Step.image` once, to be used by all steps.
+
+    .. code-block:: yaml
+
+        prototype:
+          image: ubuntu
+        steps:
+          - name: prototype example one
+            command: ["echo", "one"]
+          - name: prototype example two
+            command: ["echo", "two"]
+
+    Here's an example YAML :class:`ExecutionRecord` for that same pipeline.
+
+    .. code-block:: yaml
+
+        original:
+          prototype:
+            image: ubuntu
+          steps:
+            - name: prototype example one
+              command: ["echo", "one"]
+            - name: prototype example two
+              command: ["echo", "two"]
+        amended:
+          prototype:
+            image: ubuntu
+          steps:
+            - name: prototype example one
+              image: ubuntu
+              command: ["echo", "one"]
+            - name: prototype example two
+              image: ubuntu
+              command: ["echo", "two"]
+
+    The ``original`` is just the same as the original pipeline spec.
+
+    The ``amended`` :attr:`steps` have their :attr:`Step.image` filled in
+    from the :attr:`prototype`.
+    It's the ``amended`` steps that are actually executed.
+    """
+
     steps: list[Step] = field(default_factory=list)
+    """The list of :class:`Step` to execute.
+
+    The :attr:`steps` are the most important part of a pipeline!
+    These determine what will actually be executed.
+
+    Before pipeline execution, all :attr:`steps` will be amended with
+    :attr:`args` and the :attr:`prototype`.
+
+    Execution will proceed by runnung each step in the order given.
+    A step might be skipped, based on :attr:`Step.match_done`.
+    If a step stops with a nonzero :attr:`StepResult.exit_code`, the
+    pipeline execution will stop at that point.
+
+    After execution, the :class:`ExecutionRecord` will contain a list of
+    :class:`StepResult`, one for each of the :attr:`steps` executed.
+    """
 
     def _combine_args(self, args: dict[str, str]) -> dict[str, str]:
         """Update self.args with given args values, but don't add new keys."""
@@ -341,10 +624,23 @@ class Pipeline(YamlData):
 
 
 @dataclass
-class PipelineResult(YamlData):
-    """The results of running a whole Pipeline."""
+class ExecutionRecord(YamlData):
+    """Records what happened when a :class:`Pipeline` was amended and executed."""
 
     original: Pipeline = None
+    """The original :class:`Pipeline` specification, as given."""
+
     amended: Pipeline = None
+    """The :class:`Pipeline` amended with :attr:`Pipeline.args` and :attr:`Pipeline.prototype`.
+
+    It's the amended pipeline that's actually executed.
+    """
+
     timing: Timing = field(compare=False, default=None)
+    """Start datetime, finish datetime, and duration for the entire pipeline execution."""
+
     step_results: list[StepResult] = field(default_factory=list)
+    """List of :class:`StepResult` from runnung the :attr:`Pipeline.steps`
+
+    The :attr:`step_results` should correspond one-to-one with the :attr:`Pipeline.steps`.
+    """

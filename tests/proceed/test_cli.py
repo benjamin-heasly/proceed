@@ -2,7 +2,7 @@ import docker
 from pathlib import Path
 from pytest import fixture, raises
 from proceed.cli import main
-from proceed.model import Pipeline, PipelineResult, StepResult
+from proceed.model import Pipeline, ExecutionRecord, StepResult
 
 @fixture
 def alpine_image():
@@ -33,7 +33,7 @@ def test_happy_pipeline(fixture_files, tmp_path, alpine_image):
     with open(pipeline_spec) as f:
         original = Pipeline.from_yaml(f.read())
 
-    expected_result = PipelineResult(
+    expected_result = ExecutionRecord(
         original=original,
         amended=original._with_args_applied({"arg_1": "quux"}),
         step_results=[
@@ -47,7 +47,7 @@ def test_happy_pipeline(fixture_files, tmp_path, alpine_image):
     )
 
     with open(Path(tmp_path, "happy_spec", "test", "execution_record.yaml")) as f:
-        pipeline_result = PipelineResult.from_yaml(f.read())
+        pipeline_result = ExecutionRecord.from_yaml(f.read())
 
     assert pipeline_result == expected_result
 
@@ -74,7 +74,7 @@ def test_sad_pipeline(fixture_files, tmp_path, alpine_image):
     with open(pipeline_spec) as f:
         original = Pipeline.from_yaml(f.read())
 
-    expected_result = PipelineResult(
+    expected_result = ExecutionRecord(
         original=original,
         amended=original,
         step_results=[
@@ -88,7 +88,7 @@ def test_sad_pipeline(fixture_files, tmp_path, alpine_image):
     )
 
     with open(Path(tmp_path, "sad_spec", "test", "execution_record.yaml")) as f:
-        pipeline_result = PipelineResult.from_yaml(f.read())
+        pipeline_result = ExecutionRecord.from_yaml(f.read())
 
     assert pipeline_result == expected_result
 
@@ -139,7 +139,7 @@ def test_default_output_dirs(fixture_files, tmp_path):
     assert yaml_out[0].name == "execution_record.yaml"
 
     with open(yaml_out[0]) as f:
-        pipeline_result = PipelineResult.from_yaml(f.read())
+        pipeline_result = ExecutionRecord.from_yaml(f.read())
 
     # From the execution record we can discover the step log file(s).
     assert len(pipeline_result.step_results) == 1

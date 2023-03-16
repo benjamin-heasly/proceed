@@ -2,7 +2,7 @@ from os import getcwd
 from pathlib import Path
 import docker
 from pytest import fixture
-from proceed.model import Pipeline, PipelineResult, Step, StepResult
+from proceed.model import Pipeline, ExecutionRecord, Step, StepResult
 from proceed.docker_runner import run_pipeline, run_step
 
 
@@ -271,7 +271,7 @@ def test_pipeline_with_args(alpine_image, tmp_path):
         StepResult(name="step 1", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_1.log").as_posix()),
         StepResult(name="step 2", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_2.log").as_posix())
     ]
-    expected_result = PipelineResult(
+    expected_result = ExecutionRecord(
         original=pipeline,
         amended=expected_amended,
         step_results=expected_step_results
@@ -315,7 +315,7 @@ def test_pipeline_with_environment(alpine_image, tmp_path):
         StepResult(name="step 1", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_1.log").as_posix()),
         StepResult(name="step 2", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_2.log").as_posix())
     ]
-    expected_result = PipelineResult(
+    expected_result = ExecutionRecord(
         original=pipeline,
         amended=pipeline._with_prototype_applied(),
         step_results=expected_step_results

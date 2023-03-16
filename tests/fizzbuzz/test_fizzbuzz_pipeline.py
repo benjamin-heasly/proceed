@@ -2,7 +2,7 @@ from pathlib import Path
 from os import getcwd
 import docker
 from pytest import fixture
-from proceed.model import PipelineResult, StepResult
+from proceed.model import ExecutionRecord, StepResult
 from proceed.cli import main
 from proceed.file_matching import hash_contents
 
@@ -52,7 +52,7 @@ def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files, fixture
 
     with open(Path(tmp_path, "fizzbuzz", "test", "execution_record.yaml"), 'r') as f:
         results_yaml = f.read()
-        pipeline_results = PipelineResult.from_yaml(results_yaml)
+        pipeline_results = ExecutionRecord.from_yaml(results_yaml)
 
     assert pipeline_results.timing._is_complete()
     assert len(pipeline_results.step_results) == 3
@@ -144,7 +144,7 @@ def test_pipeline_skip_done_steps(fizzbuzz_image, fixture_path, tmp_path, fixtur
 
     with open(Path(tmp_path, "fizzbuzz", "test", "execution_record.yaml"), 'r') as f:
         results_yaml = f.read()
-        pipeline_results = PipelineResult.from_yaml(results_yaml)
+        pipeline_results = ExecutionRecord.from_yaml(results_yaml)
 
     assert pipeline_results.timing._is_complete()
     assert len(pipeline_results.step_results) == 3
