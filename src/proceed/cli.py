@@ -29,7 +29,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                         type=str,
                         help="output directory to receive logs and the execution records (default is ./proceed_out)",
                         default="./proceed_out")
-    parser.add_argument("--out-group", "-n",
+    parser.add_argument("--out-group", "-g",
                         type=str,
                         help="output subdirectory for this pipeline (default is from spec file base name)",
                         default=None)
@@ -37,7 +37,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                         type=str,
                         help="output subdirectory for this execution (default is from UTC datetime)",
                         default=None)
-    parser.add_argument("--skip-empty", "-s",
+    parser.add_argument("--skip-empty", "-e",
                         type=bool,
                         help="whether to skip empty lists, empty dicts, and null values when writing the execution record (default is true)",
                         default=True)
