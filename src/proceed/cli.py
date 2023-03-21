@@ -19,13 +19,14 @@ def set_up_logging(log_file: str):
         ]
     )
 
+version_string = f"Proceed {proceed_version}"
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(prog="Proceed", description="Declarative file processing with YAML and containers.")
+    parser = argparse.ArgumentParser(description="Declarative file processing with YAML and containers.")
     parser.add_argument("spec",
                         type=str,
                         help="input YAML file with proceed pipeline specification")
-    parser.add_argument("--version", "-v", action="version", version=f'%(prog)s {proceed_version}')
+    parser.add_argument("--version", "-v", action="version", version=version_string)
     parser.add_argument("--out-dir", "-o",
                         type=str,
                         help="output directory to receive logs and the execution records (default is ./proceed_out)",
@@ -60,7 +61,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if cli_args.out_id:
         execution_path = Path(group_path, cli_args.out_id)
     else:
-        execution_time = datetime.now(timezone.utc).isoformat(sep="T")
+        execution_time = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%Z')
         execution_path = Path(group_path, execution_time)
 
     execution_path.mkdir(parents=True, exist_ok=True)
@@ -69,6 +70,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     log_file = Path(execution_path, "proceed.log")
     set_up_logging(log_file)
 
+    logging.info(version_string)
     logging.info(f"Using output directory: {execution_path.as_posix()}")
 
     logging.info(f"Parsing proceed pipeline specification from: {cli_args.spec}")
