@@ -624,7 +624,7 @@ class Pipeline(YamlData):
 
 @dataclass
 class ExecutionRecord(YamlData):
-    """Records what happened when a :class:`Pipeline` was amended and executed."""
+    """Auditable record of what happened when a :class:`Pipeline` was amended and executed."""
 
     original: Pipeline = None
     """The original :class:`Pipeline` specification, as given."""

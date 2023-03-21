@@ -73,7 +73,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     logging.info(version_string)
     logging.info(f"Using output directory: {execution_path.as_posix()}")
 
-    logging.info(f"Parsing proceed pipeline specification from: {cli_args.spec}")
+    logging.info(f"Parsing pipeline specification from: {cli_args.spec}")
     with open(cli_args.spec) as spec:
         pipeline = Pipeline.from_yaml(spec.read())
 

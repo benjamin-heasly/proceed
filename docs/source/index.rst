@@ -11,7 +11,7 @@ explicit configuration of steps at runtime.  Each execution produces an
 **execution record** that accounts for accepted arg values, step logs, and
 checksums of input and output files.
 
-Hopefully, Proceed will allow you to express evertying you need to know about your
+Hopefully, Proceed will allow you to express everything you need to know about your
 processing pipeline in a *"nothing up my sleeves"* way.  The pipeline specification
 should be complete enough to share with others who have Proceed and Docker installed,
 and the execution record should allow for auditing of expected outcomes and
@@ -22,7 +22,9 @@ Contents
 ========
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
-   usage
+   installation
+   hello_world
+   fizz_buzz
    api

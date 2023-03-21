@@ -1,6 +1,8 @@
 API
 ===
 
+These API docs are generated from the Proceed `source code <https://github.com/benjamin-heasly/proceed>`_.
+
 .. autosummary::
    :toctree: generated
    :nosignatures:

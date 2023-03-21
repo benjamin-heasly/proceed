@@ -131,3 +131,7 @@ dmypy.json
 
 # Visual Studio Code
 .vscode/
+
+# Proceed
+proceed_out/
+hello_world.yaml
