@@ -4,7 +4,6 @@ build-backend = "hatchling.build"
 
 [project]
 name = "proceed"
-version = "0.0.1"
 description = "Execute pipelines based on files and containers."
 keywords = []
 authors = [
@@ -18,6 +17,7 @@ classifiers = [
   "Operating System :: OS Independent",
 ]
 dependencies = ["docker", "PyYAML"]
+dynamic = ["version"]
 
 [project.urls]
 "Homepage" = "https://github.com/benjamin-heasly/proceed"
@@ -32,6 +32,9 @@ addopts = [
 ]
 
 [tool.hatch]
+
+[tool.hatch.version]
+path = "src/proceed/__about__.py"
 
 [tool.hatch.envs.test]
 dependencies = [

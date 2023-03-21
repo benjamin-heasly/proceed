@@ -2,8 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, Self, Union
 from string import Template
 from proceed.yaml_data import YamlData
-
-proceed_model_version = "0.0.1"
+from proceed.__about__ import __version__ as proceed_version
 
 
 def apply_args(x: Any, args: dict[str, str]):
@@ -413,7 +412,7 @@ class Pipeline(YamlData):
     in order to actually run anything.
     """
 
-    version: str = proceed_model_version
+    version: str = proceed_version
     """Which version of the Proceed :class:`Pipeline` specification, itself.
 
     You don't need to set the :attr:`version`.

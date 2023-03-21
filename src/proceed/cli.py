@@ -6,7 +6,7 @@ import argparse
 from typing import Optional, Sequence
 from proceed.model import Pipeline
 from proceed.docker_runner import run_pipeline
-
+from proceed.__about__ import __version__ as proceed_version
 
 def set_up_logging(log_file: str):
     logging.root.handlers = []
@@ -21,10 +21,11 @@ def set_up_logging(log_file: str):
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="Declarative file processing with YAML and containers.")
+    parser = argparse.ArgumentParser(prog="Proceed", description="Declarative file processing with YAML and containers.")
     parser.add_argument("spec",
                         type=str,
                         help="input YAML file with proceed pipeline specification")
+    parser.add_argument("--version", "-v", action="version", version=f'%(prog)s {proceed_version}')
     parser.add_argument("--out-dir", "-o",
                         type=str,
                         help="output directory to receive logs and the execution records (default is ./proceed_out)",
