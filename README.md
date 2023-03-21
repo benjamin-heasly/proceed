@@ -50,7 +50,7 @@ $ proceed --help
 usage etc...
 ```
 
-# Quick Start
+# Hello World
 Here's a "hello world" example for Proceed.
 It will help you declare a pipeline with a single step.
 It should give you a feel for the syntax of the input pipeline spec and the output execution record.
@@ -96,10 +96,12 @@ $ proceed hello.yaml
 2023-03-21 11:35:45,815 [INFO] OK.
 ```
 
-Proceed tries to log what it intends to do next, what happened, and when.
+Proceed logs what it intends to do next, what happened, and when.
 If all goes well you won't need to know all of that -- but if something unexpected happens this might help you track down where and why.
 
-For each pipeline execution, Proceed writes several files into a local subdirectory.
+In addition to the main log, proceed writes several files into a local subdirectory.
+These are indended to capture exactly what happened and to make the pipeline execution auditable.
+
 The subdirectory is named like this:
 
 `root folder` / `name of the pipeline file` / `UTC timestamp` /
