@@ -120,7 +120,7 @@ def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files, fixture
     with open(Path(tmp_path, "fizzbuzz", "test", "proceed.log")) as f:
         log = f.read()
 
-    assert "Parsing proceed pipeline specification" in log
+    assert "Parsing pipeline specification" in log
     assert log.endswith("OK.\n")
 
 
@@ -182,5 +182,5 @@ def test_pipeline_skip_done_steps(fizzbuzz_image, fixture_path, tmp_path, fixtur
     with open(Path(tmp_path, "fizzbuzz", "test", "proceed.log")) as f:
         log = f.read()
 
-    assert "Parsing proceed pipeline specification" in log
+    assert "Parsing pipeline specification" in log
     assert log.endswith("OK.\n")

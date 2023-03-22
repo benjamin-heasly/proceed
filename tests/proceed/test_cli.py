@@ -60,7 +60,7 @@ def test_happy_pipeline(fixture_files, tmp_path, alpine_image):
 
     # The cli log should contain messages from the proceed runner itself.
     # It should also contain the step logs.
-    assert "Parsing proceed pipeline specification" in log
+    assert "Parsing pipeline specification" in log
     assert "quux\n" in log
     assert log.endswith("OK.\n")
 
@@ -99,7 +99,7 @@ def test_sad_pipeline(fixture_files, tmp_path, alpine_image):
     with open(Path(tmp_path, "sad_spec", "test", "proceed.log")) as f:
         log = f.read()
 
-    assert "Parsing proceed pipeline specification" in log
+    assert "Parsing pipeline specification" in log
     assert "bad exit code: 1" in log
     assert log.endswith("Completed with errors.\n")
 
@@ -119,7 +119,7 @@ def test_invalid_input(tmp_path):
     with open(Path(tmp_path, "no_such_file", "test", "proceed.log")) as f:
         log = f.read()
 
-    assert log.endswith("Parsing proceed pipeline specification from: no_such_file\n")
+    assert log.endswith("Parsing pipeline specification from: no_such_file\n")
 
 
 def test_default_output_dirs(fixture_files, tmp_path):
@@ -155,6 +155,6 @@ def test_default_output_dirs(fixture_files, tmp_path):
     with open(proceed_log_out[0]) as f:
          proceed_log = f.read()
 
-    assert "Parsing proceed pipeline specification" in proceed_log
+    assert "Parsing pipeline specification" in proceed_log
     assert "foo\n" in proceed_log
     assert proceed_log.endswith("OK.\n")
