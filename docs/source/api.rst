@@ -1,5 +1,5 @@
-API
-===
+API Reference
+=============
 
 These API docs are generated from the Proceed `source code <https://github.com/benjamin-heasly/proceed>`_.
 

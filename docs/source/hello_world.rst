@@ -1,5 +1,5 @@
-Hello World
-===========
+Tutorial: Hello World
+=====================
 
 Here is a "hello world" example for Proceed.
 It will show you how to use `YAML <https://yaml.org/>`_ to declare a pipeline that has one step.
