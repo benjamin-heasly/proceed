@@ -28,7 +28,7 @@ def run_pipeline(original: Pipeline, execution_path: Path, args: dict[str, str] 
         step_result = run_step(step, log_path)
         step_results.append(step_result)
         if step_result.exit_code:
-            logging.info("Stopping pipeline run after error.")
+            logging.error("Stopping pipeline run after error.")
             break
 
     finish = datetime.now(timezone.utc)
@@ -124,7 +124,7 @@ def run_step(step: Step, log_path: Path) -> StepResult:
         with open(log_path, 'w') as f:
             f.write(error_message)
 
-        logging.info(f"Step '{step.name}': error --\n {error_message}")
+        logging.error(f"Step '{step.name}': error --\n {error_message}")
         return StepResult(
             name=step.name,
             log_file=log_path.as_posix(),
@@ -136,7 +136,7 @@ def run_step(step: Step, log_path: Path) -> StepResult:
         with open(log_path, 'w') as f:
             f.write(error_message)
 
-        logging.info(f"Step '{step.name}': error --\n {error_message}")
+        logging.error(f"Step '{step.name}': error --\n {error_message}")
         return StepResult(
             name=step.name,
             log_file=log_path.as_posix(),
