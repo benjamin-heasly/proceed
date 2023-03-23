@@ -40,6 +40,7 @@ def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files, fixture
     # First run through the pipeline should succeed and see expected input and output files.
     pipeline_spec = fixture_files["fizzbuzz_pipeline_spec.yaml"].as_posix()
     args = [
+        "run",
         pipeline_spec,
         '--out-dir', tmp_path.as_posix(),
         '--out-group', "fizzbuzz",
@@ -128,6 +129,7 @@ def test_pipeline_skip_done_steps(fizzbuzz_image, fixture_path, tmp_path, fixtur
     # Repeat run through the pipeline should succeed and skip steps because they already have "done" files.
     pipeline_spec = fixture_files["fizzbuzz_pipeline_spec.yaml"].as_posix()
     args = [
+        "run",
         pipeline_spec,
         '--out-dir', tmp_path.as_posix(),
         '--out-group', "fizzbuzz",

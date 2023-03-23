@@ -26,7 +26,7 @@ def fixture_files(fixture_path):
 
 def test_happy_pipeline(fixture_files, tmp_path, alpine_image):
     pipeline_spec = fixture_files['happy_spec.yaml'].as_posix()
-    cli_args = [pipeline_spec, '--out-dir', tmp_path.as_posix(), '--out-id', "test", '--args', 'arg_1=quux']
+    cli_args = ["run", pipeline_spec, '--out-dir', tmp_path.as_posix(), '--out-id', "test", '--args', 'arg_1=quux']
     exit_code = main(cli_args)
     assert exit_code == 0
 
@@ -67,7 +67,7 @@ def test_happy_pipeline(fixture_files, tmp_path, alpine_image):
 
 def test_sad_pipeline(fixture_files, tmp_path, alpine_image):
     pipeline_spec = fixture_files['sad_spec.yaml'].as_posix()
-    cli_args = [pipeline_spec, '--out-dir', tmp_path.as_posix(), '--out-id', "test", '--args', 'arg_1=quux']
+    cli_args = ["run", pipeline_spec, '--out-dir', tmp_path.as_posix(), '--out-id', "test", '--args', 'arg_1=quux']
     exit_code = main(cli_args)
     assert exit_code == 1
 
@@ -111,7 +111,7 @@ def test_help():
 
 
 def test_invalid_input(tmp_path):
-    cli_args = ["no_such_file", '--out-dir', tmp_path.as_posix(), '--out-id', "test"]
+    cli_args = ["run", "no_such_file", '--out-dir', tmp_path.as_posix(), '--out-id', "test"]
     with raises(FileNotFoundError) as exception_info:
         main(cli_args)
     assert 2 in exception_info.value.args
@@ -122,9 +122,15 @@ def test_invalid_input(tmp_path):
     assert log.endswith("Parsing pipeline specification from: no_such_file\n")
 
 
+def test_spec_required_for_run():
+    cli_args = ["run"]
+    exit_code = main(cli_args)
+    assert exit_code == -1
+
+
 def test_default_output_dirs(fixture_files, tmp_path):
     pipeline_spec = fixture_files['happy_spec.yaml'].as_posix()
-    cli_args = [pipeline_spec, '--out-dir', tmp_path.as_posix()]
+    cli_args = ["run", pipeline_spec, '--out-dir', tmp_path.as_posix()]
     exit_code = main(cli_args)
     assert exit_code == 0
 

@@ -29,7 +29,7 @@ Execute the pipeline using the ``proceed`` command:
 
 .. code-block:: shell
 
-    $ proceed hello.yaml
+    $ proceed run hello.yaml
 
 Proceed logs to stdout what it intends to do next, what happened, and when.
 If all goes well you won't need to know all of that.
@@ -52,7 +52,7 @@ But if something unexpected happens or if you are revisiting things at a later t
     2023-03-21 14:48:57,441 [INFO] Step 'step one': finished.
     2023-03-21 14:48:57,451 [INFO] Finished pipeline run.
     2023-03-21 14:48:57,451 [INFO] Writing execution record to: proceed_out/hello_world/20230321T184856UTC/execution_record.yaml
-    2023-03-21 14:48:57,456 [INFO] Completed 1 steps without errors.
+    2023-03-21 14:48:57,456 [INFO] Completed 1 steps successfully.
     2023-03-21 14:48:57,457 [INFO] OK.
 
 In this simple example, the key result is the "hello world" part in the middle:

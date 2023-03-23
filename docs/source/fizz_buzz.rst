@@ -208,7 +208,7 @@ Execute the pipeline using the ``proceed`` command, passing in a value for the `
 
 .. code-block:: shell
 
-    $ proceed fizzbuzz.yaml --args work_dir=./my/work
+    $ proceed run fizzbuzz.yaml --args work_dir=./my/work
 
 A successful run should produce log output similar to the following:
 
@@ -251,7 +251,7 @@ A successful run should produce log output similar to the following:
   2023-03-22 16:35:20,783 [INFO] Step 'filter buzz': finished.
   2023-03-22 16:35:20,793 [INFO] Finished pipeline run.
   2023-03-22 16:35:20,794 [INFO] Writing execution record to: proceed_out/fizzbuzz/20230322T203517UTC/execution_record.yaml
-  2023-03-22 16:35:20,804 [INFO] Completed 3 steps without errors.
+  2023-03-22 16:35:20,804 [INFO] Completed 3 steps successfully.
   2023-03-22 16:35:20,805 [INFO] OK.
 
 Proceed logs its own intentions and actions, and incorporates the output from each step.
@@ -398,7 +398,7 @@ Finally, let's try running the same pipeline again, without making changes.
 
 .. code-block:: shell
 
-    $ proceed fizzbuzz.yaml --args work_dir=./my/work
+    $ proceed run fizzbuzz.yaml --args work_dir=./my/work
 
 This time the loged output is shorter.
 
@@ -420,7 +420,7 @@ This time the loged output is shorter.
   2023-03-22 16:49:16,232 [INFO] Step 'filter buzz': found 1 done files, skipping execution.
   2023-03-22 16:49:16,232 [INFO] Finished pipeline run.
   2023-03-22 16:49:16,233 [INFO] Writing execution record to: proceed_out/fizzbuzz/20230322T204916UTC/execution_record.yaml
-  2023-03-22 16:49:16,243 [INFO] Completed 3 steps without errors.
+  2023-03-22 16:49:16,243 [INFO] Completed 3 steps successfully.
   2023-03-22 16:49:16,244 [INFO] OK.
 
 It's shorter because Proceed found the "done file" for each step and decided to skip re-executing the steps.

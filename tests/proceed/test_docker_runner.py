@@ -149,7 +149,10 @@ def test_step_gpus(ubuntu_image, tmp_path):
     # For this test we want to know whether we correctly *requested* a gpu device.
     # We don't actually care if the process was able to use a gpu.
     # So, we'll check for two expected outcomes, assuming we at least *requested* the gpu.
-    if step_result.exit_code == 0:
+    if step_result.exit_code == 0: # pragma: no cover
+        # This is actually the unusual case for testing on laptops, github actions, etc.
+        # So we don't ask pytest-cov to track coverage for this branch.
+
         # Host seems to have docker "--gpus" support.
         assert step_result.timing._is_complete()
         assert "NVIDIA-SMI" in read_step_logs(step_result)
