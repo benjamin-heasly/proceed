@@ -10,7 +10,7 @@ def fixture_path(request):
 
 
 def test_aggregate(fixture_path):
-    results_path = Path(fixture_path, "proceed_out")
+    results_path = Path(fixture_path, "results_out")
     summary = aggregate_results(results_path)
 
     assert summary["group"].to_list() == ["pipeline_a", "pipeline_a", "pipeline_b", "pipeline_b"]

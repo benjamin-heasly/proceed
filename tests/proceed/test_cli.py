@@ -168,7 +168,7 @@ def test_default_output_dirs(fixture_specs, tmp_path):
 
 
 def test_aggregate_results(fixture_path, tmp_path):
-    results_path = Path(fixture_path, "proceed_out")
+    results_path = Path(fixture_path, "results_out")
     out_path = Path(tmp_path, "summary.csv")
     cli_args = ["aggregate", "--out-dir", results_path.as_posix(), "--out-file", out_path.as_posix()]
     exit_code = main(cli_args)
