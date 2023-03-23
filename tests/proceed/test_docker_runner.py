@@ -25,7 +25,7 @@ def ubuntu_image():
 @fixture
 def fixture_path(request):
     this_file = Path(request.module.__file__).relative_to(getcwd())
-    return Path(this_file.parent, 'fixture_files')
+    return Path(this_file.parent, 'fixture_files', 'specs')
 
 
 def read_step_logs(step_result: StepResult) -> str:

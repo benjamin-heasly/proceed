@@ -19,13 +19,13 @@ def fixture_path(request):
 
 
 @fixture
-def fixture_files(fixture_path):
-    yaml_files = fixture_path.glob("*.yaml")
+def fixture_specs(fixture_path):
+    yaml_files = fixture_path.glob("specs/*.yaml")
     return {yaml_file.name: yaml_file for yaml_file in yaml_files}
 
 
-def test_happy_pipeline(fixture_files, tmp_path, alpine_image):
-    pipeline_spec = fixture_files['happy_spec.yaml'].as_posix()
+def test_happy_pipeline(fixture_specs, tmp_path, alpine_image):
+    pipeline_spec = fixture_specs['happy_spec.yaml'].as_posix()
     cli_args = ["run", pipeline_spec, '--out-dir', tmp_path.as_posix(), '--out-id', "test", '--args', 'arg_1=quux']
     exit_code = main(cli_args)
     assert exit_code == 0
@@ -65,8 +65,8 @@ def test_happy_pipeline(fixture_files, tmp_path, alpine_image):
     assert log.endswith("OK.\n")
 
 
-def test_sad_pipeline(fixture_files, tmp_path, alpine_image):
-    pipeline_spec = fixture_files['sad_spec.yaml'].as_posix()
+def test_sad_pipeline(fixture_specs, tmp_path, alpine_image):
+    pipeline_spec = fixture_specs['sad_spec.yaml'].as_posix()
     cli_args = ["run", pipeline_spec, '--out-dir', tmp_path.as_posix(), '--out-id', "test", '--args', 'arg_1=quux']
     exit_code = main(cli_args)
     assert exit_code == 1
@@ -128,8 +128,8 @@ def test_spec_required_for_run():
     assert exit_code == -1
 
 
-def test_default_output_dirs(fixture_files, tmp_path):
-    pipeline_spec = fixture_files['happy_spec.yaml'].as_posix()
+def test_default_output_dirs(fixture_specs, tmp_path):
+    pipeline_spec = fixture_specs['happy_spec.yaml'].as_posix()
     cli_args = ["run", pipeline_spec, '--out-dir', tmp_path.as_posix()]
     exit_code = main(cli_args)
     assert exit_code == 0
@@ -164,3 +164,16 @@ def test_default_output_dirs(fixture_files, tmp_path):
     assert "Parsing pipeline specification" in proceed_log
     assert "foo\n" in proceed_log
     assert proceed_log.endswith("OK.\n")
+
+
+def test_aggregate_results(fixture_path, tmp_path):
+    results_path = Path(fixture_path, "proceed_out")
+    out_path = Path(tmp_path, "summary.csv")
+    cli_args = ["aggregate", "--out-dir", results_path.as_posix(), "--out-file", out_path.as_posix()]
+    exit_code = main(cli_args)
+    assert exit_code == 0
+
+    with open(out_path) as f:
+        summary = f.read()
+
+    assert summary == "{'foo': 'bar'}"

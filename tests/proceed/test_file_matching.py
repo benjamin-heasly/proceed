@@ -6,7 +6,7 @@ from proceed.file_matching import count_matches, match_patterns_in_dirs
 @fixture
 def fixture_path(request):
     this_file = Path(request.module.__file__)
-    return Path(this_file.parent, 'fixture_files')
+    return Path(this_file.parent, 'fixture_files', 'specs')
 
 
 def test_match_yaml_files(fixture_path):
