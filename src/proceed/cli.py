@@ -98,9 +98,7 @@ def aggregate(cli_args: Namespace) -> int:
     # Choose where to write the aggregated results.
     out_file = Path(cli_args.out_file)
     logging.info(f"Writing summary to {out_file.as_posix()}")
-
-    with open(out_file, "w") as f:
-        f.write(str(summary))
+    summary.to_csv(out_file)
 
     return 0
 

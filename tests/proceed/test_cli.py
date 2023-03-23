@@ -1,6 +1,7 @@
 import docker
 from pathlib import Path
 from pytest import fixture, raises
+from pandas import read_csv
 from proceed.cli import main
 from proceed.model import Pipeline, ExecutionRecord, StepResult
 
@@ -173,7 +174,6 @@ def test_aggregate_results(fixture_path, tmp_path):
     exit_code = main(cli_args)
     assert exit_code == 0
 
-    with open(out_path) as f:
-        summary = f.read()
-
-    assert summary == "{'foo': 'bar'}"
+    summary = read_csv(out_path)
+    assert summary["group"].to_list() == ["pipeline_a", "pipeline_a", "pipeline_b", "pipeline_b"]
+    assert summary["id"].to_list() == ["123", "456", "789", "abc"]
