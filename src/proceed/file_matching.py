@@ -3,10 +3,6 @@ import hashlib
 from pathlib import Path
 
 
-def count_matches(matches: dict[str, dict[str, str]]) -> int:
-    return sum(len(dir_matches) for dir_matches in matches.values())
-
-
 def match_patterns_in_dirs(dirs: list[str], glob_patterns: list[str])-> dict[str, dict[str, str]]:
     """Search each given dir using each given "glob" pattern, return matched files, with content digests, per dir."""
     matches = {}
@@ -33,3 +29,18 @@ def hash_contents(path: Path, algorithm: str = "sha256") -> str:
     with open(path, "rb") as f:
         digest = hashlib.file_digest(f, algorithm)
     return f"{digest.name}:{digest.hexdigest()}"
+
+
+def count_matches(matches: dict[str, dict[str, str]]) -> int:
+    return sum(len(dir_matches) for dir_matches in matches.values())
+
+
+def flatten_matches(matches: dict[str, dict[str, str]]) -> list[tuple[str, str]]:
+    flattened = []
+    for volume, file_info in matches.items():
+        for path, digest in file_info.items():
+            # TODO keep volume and path separate, so that host-specific volume is easy to ignore
+            volume_path = Path(volume, path)
+            flat = (volume_path.as_posix(), digest)
+            flattened.append(flat)
+    return flattened

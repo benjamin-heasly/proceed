@@ -25,7 +25,7 @@ def ubuntu_image():
 @fixture
 def fixture_path(request):
     this_file = Path(request.module.__file__).relative_to(getcwd())
-    return Path(this_file.parent, 'fixture_files', 'specs')
+    return Path(this_file.parent, 'fixture_files')
 
 
 def read_step_logs(step_result: StepResult) -> str:
@@ -178,8 +178,9 @@ def test_step_files_done(alpine_image, fixture_path, tmp_path):
     # The existence of these files should cause the step itself to be skipped.
     expected_files = {
         fixture_dir: {
+            "files_spec.yaml": "sha256:1423a32c9cfa52022f98843ee679ceac18e5cabd34824b6a558de694abff2319",
             "happy_spec.yaml": "sha256:23b5688d1593f8479a42dad99efa791db4bf795de9330a06664ac22837fc3ecc",
-            "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000"
+            "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000",
         }
     }
     assert step_result.files_done == expected_files
@@ -205,8 +206,9 @@ def test_step_files_in(alpine_image, fixture_path, tmp_path):
     # The existence of these files should be noted, and the step should run normally.
     expected_files = {
         fixture_dir: {
+            "files_spec.yaml": "sha256:1423a32c9cfa52022f98843ee679ceac18e5cabd34824b6a558de694abff2319",
             "happy_spec.yaml": "sha256:23b5688d1593f8479a42dad99efa791db4bf795de9330a06664ac22837fc3ecc",
-            "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000"
+            "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000",
         }
     }
     assert step_result.exit_code == 0
@@ -232,8 +234,9 @@ def test_step_files_out(alpine_image, fixture_path, tmp_path):
     # The existence of these files should be noted, and the step should run normally.
     expected_files = {
         fixture_dir: {
+            "files_spec.yaml": "sha256:1423a32c9cfa52022f98843ee679ceac18e5cabd34824b6a558de694abff2319",
             "happy_spec.yaml": "sha256:23b5688d1593f8479a42dad99efa791db4bf795de9330a06664ac22837fc3ecc",
-            "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000"
+            "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000",
         }
     }
     assert step_result.exit_code == 0

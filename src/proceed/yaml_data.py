@@ -32,7 +32,7 @@ class YamlData():
         self_dict = asdict(self)
         if skip_empty:
             self_dict = remove_empty_values(self_dict)
-        self_yaml = yaml.safe_dump(self_dict, sort_keys=False, default_flow_style=None)
+        self_yaml = yaml.safe_dump(self_dict, sort_keys=False, default_flow_style=None, width=1000)
         return self_yaml
 
     @classmethod

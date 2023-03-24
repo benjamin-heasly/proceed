@@ -6,7 +6,7 @@ from argparse import ArgumentParser, Namespace
 from typing import Optional, Sequence
 from proceed.model import Pipeline
 from proceed.docker_runner import run_pipeline
-from proceed.aggregator import aggregate_results
+from proceed.aggregator import summarize_results
 from proceed.__about__ import __version__ as proceed_version
 
 version_string = f"Proceed {proceed_version}"
@@ -35,16 +35,16 @@ def run(cli_args: Namespace) -> int:
         return -1
 
     # Choose where to write outputs.
-    out_path = Path(cli_args.out_dir)
+    out_path = Path(cli_args.results_dir)
 
-    if cli_args.out_group:
-        group_path = Path(out_path, cli_args.out_group)
+    if cli_args.results_group:
+        group_path = Path(out_path, cli_args.results_group)
     else:
         spec_path = Path(cli_args.spec)
         group_path = Path(out_path, spec_path.stem)
 
-    if cli_args.out_id:
-        execution_path = Path(group_path, cli_args.out_id)
+    if cli_args.results_id:
+        execution_path = Path(group_path, cli_args.results_id)
     else:
         execution_time = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%Z')
         execution_path = Path(group_path, execution_time)
@@ -86,17 +86,17 @@ def run(cli_args: Namespace) -> int:
         return 0
 
 
-def aggregate(cli_args: Namespace) -> int:
-    """Collect and organize results for "proceed aggregate ..."""
+def summarize(cli_args: Namespace) -> int:
+    """Collect and organize results for "proceed summarize ..."""
 
     # Choose where to look for previous results.
-    results_path = Path(cli_args.out_dir)
-    logging.info(f"Aggregating results from {results_path.as_posix()}")
+    results_path = Path(cli_args.results_dir)
+    logging.info(f"Summarizing results from {results_path.as_posix()}")
 
-    summary = aggregate_results(results_path)
+    summary = summarize_results(results_path)
 
-    # Choose where to write the aggregated results.
-    out_file = Path(cli_args.out_file)
+    # Choose where to write the summary of results.
+    out_file = Path(cli_args.summary_file)
     logging.info(f"Writing summary to {out_file.as_posix()}")
     summary.to_csv(out_file)
 
@@ -107,22 +107,22 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = ArgumentParser(description="Declarative file processing with YAML and containers.")
     parser.add_argument("operation",
                         type=str,
-                        choices=["run", "aggregate"],
-                        help="operation to perform: run a pipeline, aggregate results, etc."),
+                        choices=["run", "summarize"],
+                        help="operation to perform: run a pipeline, summarize results, etc."),
     parser.add_argument("spec",
                         type=str,
                         nargs="?",
                         help="YAML file with pipeline specification to run")
     parser.add_argument("--version", "-v", action="version", version=version_string)
-    parser.add_argument("--out-dir", "-o",
+    parser.add_argument("--results-dir", "-d",
                         type=str,
-                        help="working directory to receive logs and the execution records (default is ./proceed_out)",
+                        help="working directory to receive logs and execution records (default is ./proceed_out)",
                         default="./proceed_out")
-    parser.add_argument("--out-group", "-g",
+    parser.add_argument("--results-group", "-g",
                         type=str,
                         help="working subdir grouping outputs from the same spec (default is from spec file base name)",
                         default=None)
-    parser.add_argument("--out-id", "-i",
+    parser.add_argument("--results-id", "-i",
                         type=str,
                         help="working subdir with outputs from the current run (default is from UTC datetime)",
                         default=None)
@@ -134,10 +134,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                         nargs="+",
                         type=str,
                         help="one or more args to pass to the pipeline, for example: --args foo=bar baz=quux")
-    parser.add_argument("--out-file", "-f",
+    parser.add_argument("--summary-file", "-s",
                         type=str,
-                        help="output file to to receive aggregated results (default is aggregate.csv)",
-                        default="aggregate.csv")
+                        help="output file to to receive summary of results (default is summary.csv)",
+                        default="summary.csv")
     cli_args = parser.parse_args(argv)
 
     set_up_logging()
@@ -145,8 +145,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     match cli_args.operation:
         case "run":
             exit_code = run(cli_args)
-        case "aggregate":
-            exit_code = aggregate(cli_args)
+        case "summarize":
+            exit_code = summarize(cli_args)
         case _:  # pragma: no cover
             # We don't expect this to happen -- argparse should error before we get here.
             logging.error(f"Unsupported operation: {cli_args.operation}")

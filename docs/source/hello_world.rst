@@ -95,7 +95,7 @@ The subdirectories are named like this:
 
 
 This default scheme should keep the outputs reasonably organized and should prevent collisions between executions.
-You can customize the output scheme if you want, see ``proceed --help`` for the options ``--out-dir``, ``--out-group``, and ``--out-id``.
+You can customize the output scheme if you want, see ``proceed --help`` for the options ``--results-dir``, ``--results-group``, and ``--results-id``.
 
 proceed.log
 ...........

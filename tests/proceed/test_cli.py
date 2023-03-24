@@ -21,13 +21,13 @@ def fixture_path(request):
 
 @fixture
 def fixture_specs(fixture_path):
-    yaml_files = fixture_path.glob("specs/*.yaml")
+    yaml_files = fixture_path.glob("*.yaml")
     return {yaml_file.name: yaml_file for yaml_file in yaml_files}
 
 
 def test_happy_pipeline(fixture_specs, tmp_path, alpine_image):
     pipeline_spec = fixture_specs['happy_spec.yaml'].as_posix()
-    cli_args = ["run", pipeline_spec, '--out-dir', tmp_path.as_posix(), '--out-id', "test", '--args', 'arg_1=quux']
+    cli_args = ["run", pipeline_spec, '--results-dir', tmp_path.as_posix(), '--results-id', "test", '--args', 'arg_1=quux']
     exit_code = main(cli_args)
     assert exit_code == 0
 
@@ -68,7 +68,7 @@ def test_happy_pipeline(fixture_specs, tmp_path, alpine_image):
 
 def test_sad_pipeline(fixture_specs, tmp_path, alpine_image):
     pipeline_spec = fixture_specs['sad_spec.yaml'].as_posix()
-    cli_args = ["run", pipeline_spec, '--out-dir', tmp_path.as_posix(), '--out-id', "test", '--args', 'arg_1=quux']
+    cli_args = ["run", pipeline_spec, '--results-dir', tmp_path.as_posix(), '--results-id', "test", '--args', 'arg_1=quux']
     exit_code = main(cli_args)
     assert exit_code == 1
 
@@ -112,7 +112,7 @@ def test_help():
 
 
 def test_invalid_input(tmp_path):
-    cli_args = ["run", "no_such_file", '--out-dir', tmp_path.as_posix(), '--out-id', "test"]
+    cli_args = ["run", "no_such_file", '--results-dir', tmp_path.as_posix(), '--results-id', "test"]
     with raises(FileNotFoundError) as exception_info:
         main(cli_args)
     assert 2 in exception_info.value.args
@@ -131,7 +131,7 @@ def test_spec_required_for_run():
 
 def test_default_output_dirs(fixture_specs, tmp_path):
     pipeline_spec = fixture_specs['happy_spec.yaml'].as_posix()
-    cli_args = ["run", pipeline_spec, '--out-dir', tmp_path.as_posix()]
+    cli_args = ["run", pipeline_spec, '--results-dir', tmp_path.as_posix()]
     exit_code = main(cli_args)
     assert exit_code == 0
 
@@ -167,13 +167,29 @@ def test_default_output_dirs(fixture_specs, tmp_path):
     assert proceed_log.endswith("OK.\n")
 
 
-def test_aggregate_results(fixture_path, tmp_path):
-    results_path = Path(fixture_path, "results_out")
-    out_path = Path(tmp_path, "summary.csv")
-    cli_args = ["aggregate", "--out-dir", results_path.as_posix(), "--out-file", out_path.as_posix()]
-    exit_code = main(cli_args)
-    assert exit_code == 0
+def test_summarize_results(fixture_specs, tmp_path):
+    # Run a pipeline that generates files, give us some results to summarize.
+    pipeline_spec = fixture_specs['files_spec.yaml'].as_posix()
+    work_dir = Path(tmp_path, "work").as_posix()
+    run_args = ["run", pipeline_spec, '--results-dir', tmp_path.as_posix(), '--args', f"work_dir={work_dir}"]
+    run_exit_code = main(run_args)
+    assert run_exit_code == 0
 
+    # Summarize the results from that pipeline.
+    out_path = Path(tmp_path, "summary.csv")
+    summarize_args = ["summarize", "--results-dir", tmp_path.as_posix(), "--summary-file", out_path.as_posix()]
+    summarize_exit_code = main(summarize_args)
+    assert summarize_exit_code == 0
+
+    # TODO: this is a sketch!
     summary = read_csv(out_path)
-    assert summary["group"].to_list() == ["pipeline_a", "pipeline_a", "pipeline_b", "pipeline_b"]
-    assert summary["id"].to_list() == ["123", "456", "789", "abc"]
+    assert summary["group"].to_list() == ["files_spec", "files_spec", "files_spec"]
+    assert summary["label"].to_list() == ["files_out", "files_in", "files_out"]
+
+    expected_path = Path(work_dir, "file.txt").as_posix()
+    assert summary["path"].to_list() == [expected_path, expected_path, expected_path]
+    assert summary["digest"].to_list() == [
+        "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2"
+    ]

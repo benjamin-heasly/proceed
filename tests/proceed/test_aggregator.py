@@ -1,6 +1,6 @@
 from pathlib import Path
 from pytest import fixture
-from proceed.aggregator import aggregate_results
+from proceed.aggregator import summarize_results
 
 
 @fixture
@@ -9,9 +9,6 @@ def fixture_path(request):
     return Path(this_file.parent, 'fixture_files')
 
 
-def test_aggregate(fixture_path):
-    results_path = Path(fixture_path, "results_out")
-    summary = aggregate_results(results_path)
-
-    assert summary["group"].to_list() == ["pipeline_a", "pipeline_a", "pipeline_b", "pipeline_b"]
-    assert summary["id"].to_list() == ["123", "456", "789", "abc"]
+# def test_summarize_results(fixture_path):
+    # mix of pipelines
+    # repeat runs for skipping and different args

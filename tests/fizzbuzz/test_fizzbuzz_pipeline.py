@@ -42,9 +42,9 @@ def test_pipeline(fizzbuzz_image, fixture_path, tmp_path, fixture_files, fixture
     args = [
         "run",
         pipeline_spec,
-        '--out-dir', tmp_path.as_posix(),
-        '--out-group', "fizzbuzz",
-        '--out-id', "test",
+        '--results-dir', tmp_path.as_posix(),
+        '--results-group', "fizzbuzz",
+        '--results-id', "test",
         '--args', f"data_dir={fixture_path.as_posix()}", f"work_dir={tmp_path.as_posix()}"
     ]
 
@@ -131,9 +131,9 @@ def test_pipeline_skip_done_steps(fizzbuzz_image, fixture_path, tmp_path, fixtur
     args = [
         "run",
         pipeline_spec,
-        '--out-dir', tmp_path.as_posix(),
-        '--out-group', "fizzbuzz",
-        '--out-id', "test",
+        '--results-dir', tmp_path.as_posix(),
+        '--results-group', "fizzbuzz",
+        '--results-id', "test",
         '--args', f"data_dir={fixture_path.as_posix()}", f"work_dir={tmp_path.as_posix()}"
     ]
 
