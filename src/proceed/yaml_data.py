@@ -29,7 +29,7 @@ class YamlData():
     def to_yaml(self, skip_empty: bool = True) -> str:
         """Dump self to a plain YAML string without custom YAML tags."""
 
-        self_dict = asdict(self)
+        self_dict = self.to_dict()
         if skip_empty:
             self_dict = remove_empty_values(self_dict)
         self_yaml = yaml.safe_dump(self_dict, sort_keys=False, default_flow_style=None, width=1000)
@@ -42,6 +42,10 @@ class YamlData():
         instance_dict = yaml.safe_load(instance_yaml)
         instance = cls.from_dict(instance_dict)
         return instance
+
+    def to_dict(self) -> dict[str, Any]:
+        """Dump self to a plain dictionary -- a convenience wrapper around dataclasses.asdict()."""
+        return asdict(self)
 
     @classmethod
     def from_dict(cls, instance_dict) -> Self:

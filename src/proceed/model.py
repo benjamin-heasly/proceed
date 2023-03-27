@@ -643,3 +643,13 @@ class ExecutionRecord(YamlData):
 
     The :attr:`step_results` should correspond one-to-one with the :attr:`Pipeline.steps`.
     """
+
+# Config:
+# Write a default config
+# Read from first of:
+#   ./proceed_config.yaml
+#   ~/proceed_config.yaml
+#   --config my_config.yaml
+# Summary fields to exclude
+# YAML formatting options
+# Pipeline args

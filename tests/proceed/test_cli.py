@@ -183,12 +183,13 @@ def test_summarize_results(fixture_specs, tmp_path):
 
     # TODO: this is a sketch!
     summary = read_csv(out_path)
-    assert summary["group"].to_list() == ["files_spec", "files_spec", "files_spec"]
-    assert summary["label"].to_list() == ["files_out", "files_in", "files_out"]
+    assert summary["results_group"].to_list() == ["files_spec", "files_spec", "files_spec", "files_spec", "files_spec"]
+    assert summary["file_role"].to_list() == ["log", "out", "log", "in", "out"]
 
-    expected_path = Path(work_dir, "file.txt").as_posix()
-    assert summary["path"].to_list() == [expected_path, expected_path, expected_path]
-    assert summary["digest"].to_list() == [
+    assert summary["file_path"].to_list() == ["create_file.log", "file.txt", "write_to_file.log", "file.txt", "file.txt"]
+    assert summary["file_digest"].to_list() == [
+        "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2"

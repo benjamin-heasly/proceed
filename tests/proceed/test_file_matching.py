@@ -61,11 +61,11 @@ def test_flatten_matches():
             "file_4.txt": "sha256:44444444",
         }
     }
-    flattened = flatten_matches(matches)
+    flattened = flatten_matches(matches, foo="bar")
     expected_flattened = [
-        ("volume_a/file_1.txt", "sha256:11111111"),
-        ("volume_a/file_2.txt", "sha256:22222222"),
-        ("volume_b/file_3.txt", "sha256:33333333"),
-        ("volume_b/file_4.txt", "sha256:44444444"),
+        {"file_volume": "volume_a", "file_path": "file_1.txt", "file_digest": "sha256:11111111", "foo": "bar"},
+        {"file_volume": "volume_a", "file_path": "file_2.txt", "file_digest": "sha256:22222222", "foo": "bar"},
+        {"file_volume": "volume_b", "file_path": "file_3.txt", "file_digest": "sha256:33333333", "foo": "bar"},
+        {"file_volume": "volume_b", "file_path": "file_4.txt", "file_digest": "sha256:44444444", "foo": "bar"},
     ]
     assert flattened == expected_flattened
