@@ -302,3 +302,20 @@ def test_summary_row_order(pipelines, tmp_path):
         "write to file",
         "write to file",
     ]
+
+def test_summary_columns(pipelines, tmp_path):
+    run(pipelines["happy_spec"], tmp_path, results_group="happy_spec")
+    summary_name_and_digest = summarize_results(tmp_path, columns=["step_name", "file_digest"])
+    assert len(summary_name_and_digest.index) == 1
+    assert list(summary_name_and_digest.columns) == ["step_name", "file_digest"]
+    assert summary_name_and_digest["step_name"][0] == "hello"
+
+    summary_digest_and_name = summarize_results(tmp_path, columns=["file_digest", "step_name"])
+    assert len(summary_digest_and_name.index) == 1
+    assert list(summary_digest_and_name.columns) == ["file_digest", "step_name"]
+    assert summary_digest_and_name["step_name"][0] == "hello"
+
+    summary_name_and_garbage = summarize_results(tmp_path, columns=["step_name", "garbage"])
+    assert len(summary_name_and_garbage.index) == 1
+    assert list(summary_name_and_garbage.columns) == ["step_name"]
+    assert summary_name_and_garbage["step_name"][0] == "hello"

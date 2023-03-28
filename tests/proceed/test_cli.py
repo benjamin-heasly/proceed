@@ -185,7 +185,13 @@ def test_summarize_results(fixture_specs, tmp_path):
         out_path.as_posix(),
         "--summary-sort-rows-by",
         "step_start",
-        "file_role"]
+        "file_role",
+        "--summary-columns",
+        "step_start",
+        "results_group",
+        "file_role",
+        "file_path",
+        "file_digest"]
     summarize_exit_code = main(summarize_args)
     assert summarize_exit_code == 0
 

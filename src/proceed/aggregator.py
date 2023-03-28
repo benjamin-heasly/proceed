@@ -5,7 +5,7 @@ from pandas import DataFrame
 from proceed.model import ExecutionRecord, Pipeline, Step, Timing, StepResult
 from proceed.file_matching import flatten_matches, file_summary, hash_contents
 
-def summarize_results(results_path: Path, sort_rows_by: list[str] = None) -> DataFrame:
+def summarize_results(results_path: Path, columns: list[str] = None, sort_rows_by: list[str] = None) -> DataFrame:
     summary_rows = []
     group_paths = [path for path in results_path.iterdir() if path.is_dir()]
     for group_path in group_paths:
@@ -19,13 +19,15 @@ def summarize_results(results_path: Path, sort_rows_by: list[str] = None) -> Dat
 
     summary = DataFrame(summary_rows)
 
+    if columns:
+        summary_columns = list(summary.columns)
+        usable_columns = [column for column in columns if column in summary_columns]
+        summary = summary.filter(items=columns)
+
     if sort_rows_by:
         summary_columns = list(summary.columns)
         usable_columns = [column for column in sort_rows_by if column in summary_columns]
-        print(usable_columns)
         summary = summary.sort_values(usable_columns)
-
-    # TODO: let user pick columns / column ordering
 
     return summary
 

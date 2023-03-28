@@ -93,7 +93,7 @@ def summarize(cli_args: Namespace) -> int:
     results_path = Path(cli_args.results_dir)
     logging.info(f"Summarizing results from {results_path.as_posix()}")
 
-    summary = summarize_results(results_path, cli_args.summary_sort_rows_by)
+    summary = summarize_results(results_path, columns=cli_args.summary_columns, sort_rows_by=cli_args.summary_sort_rows_by)
 
     # Choose where to write the summary of results.
     out_file = Path(cli_args.summary_file)
@@ -143,6 +143,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                         type=str,
                         help="column names to use for sorting summary rows  (default is step_start file_path)",
                         default=["step_start", "file_path"])
+    parser.add_argument("--summary-columns", "-c",
+                        nargs="+",
+                        type=str,
+                        help="column names to keep in the summary (default is all columns)",
+                        default=None)
     cli_args = parser.parse_args(argv)
 
     set_up_logging()
