@@ -57,7 +57,7 @@ def run_step(step: Step, log_path: Path) -> StepResult:
             name=step.name,
             skipped=True,
             files_done=files_done,
-            timing=Timing(str(start))
+            timing=Timing(start.isoformat(sep="T"))
         )
 
     files_in = match_patterns_in_dirs(volume_dirs, step.match_in)

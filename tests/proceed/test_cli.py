@@ -177,16 +177,23 @@ def test_summarize_results(fixture_specs, tmp_path):
 
     # Summarize the results from that pipeline.
     out_path = Path(tmp_path, "summary.csv")
-    summarize_args = ["summarize", "--results-dir", tmp_path.as_posix(), "--summary-file", out_path.as_posix()]
+    summarize_args = [
+        "summarize",
+        "--results-dir",
+        tmp_path.as_posix(),
+        "--summary-file",
+        out_path.as_posix(),
+        "--summary-sort-rows-by",
+        "step_start",
+        "file_role"]
     summarize_exit_code = main(summarize_args)
     assert summarize_exit_code == 0
 
-    # TODO: this is a sketch!
+    # The summary should have a file per row, check the summary at that level.
     summary = read_csv(out_path)
     assert summary["results_group"].to_list() == ["files_spec", "files_spec", "files_spec", "files_spec", "files_spec"]
-    assert summary["file_role"].to_list() == ["log", "out", "log", "in", "out"]
-
-    assert summary["file_path"].to_list() == ["create_file.log", "file.txt", "write_to_file.log", "file.txt", "file.txt"]
+    assert summary["file_role"].to_list() == ["log", "out", "in", "log", "out"]
+    assert summary["file_path"].to_list() == ["create_file.log", "file.txt", "file.txt", "write_to_file.log", "file.txt"]
     assert summary["file_digest"].to_list() == [
         "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",

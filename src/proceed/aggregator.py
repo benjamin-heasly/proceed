@@ -5,18 +5,29 @@ from pandas import DataFrame
 from proceed.model import ExecutionRecord, Pipeline, Step, Timing, StepResult
 from proceed.file_matching import flatten_matches, file_summary, hash_contents
 
-
-def summarize_results(results_path: Path) -> dict[str, str]:
-    summary = []
-    for group_path in results_path.iterdir():
-        for id_path in group_path.iterdir():
+def summarize_results(results_path: Path, sort_rows_by: list[str] = None) -> DataFrame:
+    summary_rows = []
+    group_paths = [path for path in results_path.iterdir() if path.is_dir()]
+    for group_path in group_paths:
+        id_paths = [path for path in group_path.iterdir() if path.is_dir()]
+        for id_path in id_paths:
             for yaml_file in id_path.glob("*.y*ml"):
                 execution_record = safe_read_execution_record(yaml_file)
                 if execution_record:
                     execution_summary = summarize_execution(id_path.stem, group_path.stem, execution_record)
-                    summary = summary + execution_summary
-    # TODO: let user pick columns and ordering (don't blow up if missing for some executions!)
-    return DataFrame(summary).sort_values(['results_group', 'results_id', 'pipeline_start'])
+                    summary_rows = summary_rows + execution_summary
+
+    summary = DataFrame(summary_rows)
+
+    if sort_rows_by:
+        summary_columns = list(summary.columns)
+        usable_columns = [column for column in sort_rows_by if column in summary_columns]
+        print(usable_columns)
+        summary = summary.sort_values(usable_columns)
+
+    # TODO: let user pick columns / column ordering
+
+    return summary
 
 
 def safe_read_execution_record(yaml_file: Path) -> ExecutionRecord:

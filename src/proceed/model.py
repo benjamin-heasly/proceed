@@ -650,6 +650,6 @@ class ExecutionRecord(YamlData):
 #   ./proceed_config.yaml
 #   ~/proceed_config.yaml
 #   --config my_config.yaml
-# Summary fields to exclude
+# Summary columns, column order, and row order
 # YAML formatting options
 # Pipeline args
