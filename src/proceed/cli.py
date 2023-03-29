@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from argparse import ArgumentParser, Namespace
 from typing import Optional, Sequence
 from proceed.model import Pipeline
+from proceed.config_options import ConfigOptions
 from proceed.docker_runner import run_pipeline
 from proceed.aggregator import summarize_results
 from proceed.__about__ import __version__ as proceed_version
@@ -55,12 +56,15 @@ def run(cli_args: Namespace) -> int:
     log_file = Path(execution_path, "proceed.log")
     set_up_logging(log_file)
 
+    # TODO: write the effective config as yaml to the execution dir
+
     logging.info(f"Using output directory: {execution_path.as_posix()}")
 
     logging.info(f"Parsing pipeline specification from: {cli_args.spec}")
     with open(cli_args.spec) as spec:
         pipeline = Pipeline.from_yaml(spec.read())
 
+    # TODO: get from config_options.args.parse_key_value_pairs()
     pipeline_args = {}
     if cli_args.args:
         for kvp in cli_args.args:
@@ -72,8 +76,9 @@ def run(cli_args: Namespace) -> int:
 
     record_file = Path(execution_path, "execution_record.yaml")
     logging.info(f"Writing execution record to: {record_file}")
+    # TODO: get yaml.safe_dump kwargs from config_options.yaml_options.parse_key_value_pairs()
     with open(record_file, "w") as record:
-        record.write(pipeline_result.to_yaml(skip_empty=cli_args.skip_empty))
+        record.write(pipeline_result.to_yaml(skip_empty=cli_args.yaml_skip_empty))
 
     error_count = sum((not not step_result.exit_code) for step_result in pipeline_result.step_results)
     if error_count:
@@ -93,7 +98,8 @@ def summarize(cli_args: Namespace) -> int:
     results_path = Path(cli_args.results_dir)
     logging.info(f"Summarizing results from {results_path.as_posix()}")
 
-    summary = summarize_results(results_path, columns=cli_args.summary_columns, sort_rows_by=cli_args.summary_sort_rows_by)
+    summary = summarize_results(results_path, columns=cli_args.summary_columns,
+                                sort_rows_by=cli_args.summary_sort_rows_by)
 
     # Choose where to write the summary of results.
     out_file = Path(cli_args.summary_file)
@@ -108,50 +114,32 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("operation",
                         type=str,
                         choices=["run", "summarize"],
-                        help="operation to perform: run a pipeline, summarize results, etc."),
+                        help="operation to perform: run a pipeline or summarize results from multiple runs."),
     parser.add_argument("spec",
                         type=str,
                         nargs="?",
                         help="YAML file with pipeline specification to run")
     parser.add_argument("--version", "-v", action="version", version=version_string)
-    parser.add_argument("--results-dir", "-d",
-                        type=str,
-                        help="working directory to receive logs and execution records (default is ./proceed_out)",
-                        default="./proceed_out")
-    parser.add_argument("--results-group", "-g",
-                        type=str,
-                        help="working subdir grouping outputs from the same spec (default is from spec file base name)",
-                        default=None)
-    parser.add_argument("--results-id", "-i",
-                        type=str,
-                        help="working subdir with outputs from the current run (default is from UTC datetime)",
-                        default=None)
-    parser.add_argument("--skip-empty", "-e",
-                        type=bool,
-                        help="whether to omit null and empty values from the execution record (default is true)",
-                        default=True)
-    parser.add_argument("--args", "-a",
-                        nargs="+",
-                        type=str,
-                        help="one or more args to pass to the pipeline, for example: --args foo=bar baz=quux")
-    parser.add_argument("--summary-file", "-s",
-                        type=str,
-                        help="output file to to receive summary of results (default is summary.csv)",
-                        default="summary.csv")
-    parser.add_argument("--summary-sort-rows-by", "-r",
-                        nargs="+",
-                        type=str,
-                        help="column names to use for sorting summary rows  (default is step_start file_path)",
-                        default=["step_start", "file_path"])
-    parser.add_argument("--summary-columns", "-c",
-                        nargs="+",
-                        type=str,
-                        help="column names to keep in the summary (default is all columns)",
-                        default=None)
+
+    default_config_options = ConfigOptions()
+    for option_name in default_config_options.option_names():
+        config_option = default_config_options.option(option_name)
+        parser.add_argument(
+            config_option.cli_long_name,
+            config_option.cli_short_name,
+            default=config_option.value,
+            type=config_option.cli_type,
+            nargs=config_option.cli_nargs,
+            help=config_option.cli_help_with_default(),
+        )
+
     cli_args = parser.parse_args(argv)
+
+    # TODO: resolve effective config from multiple sources
 
     set_up_logging()
 
+    # TODO: pass effective config, not cli_args, to operations
     match cli_args.operation:
         case "run":
             exit_code = run(cli_args)

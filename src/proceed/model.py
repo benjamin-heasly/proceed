@@ -702,17 +702,3 @@ class ExecutionRecord(YamlData):
 
     The :attr:`step_results` should correspond one-to-one with the :attr:`Pipeline.steps`.
     """
-
-# Config:
-# Write a default config for convenience, bootstrapping
-# Write effective config along with execution record
-# Read from first of:
-#   ./proceed_config.yaml
-#   ~/proceed_config.yaml
-#   --config my_config.yaml
-# Any cli params like
-#   summary columns
-#   summary row sort by
-#   Pipeline args
-# YAML formatting options
-# Make equivalent to CLI args?
