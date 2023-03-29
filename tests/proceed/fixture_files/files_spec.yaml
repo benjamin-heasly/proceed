@@ -16,3 +16,4 @@ steps:
     command: [/bin/sh, -c, echo "$content" > /work/file.txt]
     match_in: [file.txt]
     match_out: [file.txt]
+    match_summary: [file.txt]

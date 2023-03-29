@@ -1,8 +1,9 @@
+from math import isnan
 from pathlib import Path
 from pytest import fixture
 from proceed.model import Pipeline
 from proceed.docker_runner import run_pipeline
-from proceed.aggregator import summarize_results
+from proceed.aggregator import summarize_results, collect_custom_columns
 
 
 @fixture
@@ -41,6 +42,7 @@ def run(pipeline: Pipeline,
         f.write(execution_record.to_yaml())
 
     return execution_path
+
 
 def test_pipeline_with_error(pipelines, tmp_path):
     run(pipelines["sad_spec"], tmp_path, results_group="sad_spec")
@@ -82,13 +84,26 @@ def test_several_output_files(pipelines, tmp_path):
     args = {"work_dir": tmp_path.as_posix()}
     run(pipelines["files_spec"], tmp_path, results_group="files_spec", args=args)
     summary = summarize_results(tmp_path)
-    assert len(summary.index) == 5
-    assert summary["results_group"].to_list() == ["files_spec", "files_spec", "files_spec", "files_spec", "files_spec"]
-    assert summary["file_role"].to_list() == ["log", "out", "log", "in", "out"]
+    assert len(summary.index) == 6
+    assert summary["results_group"].to_list() == [
+        "files_spec",
+        "files_spec",
+        "files_spec",
+        "files_spec",
+        "files_spec",
+        "files_spec"]
+    assert summary["file_role"].to_list() == [
+        "log",
+        "out",
+        "log",
+        "in",
+        "out",
+        "summary"]
     assert summary["file_path"].to_list() == [
         "create_file.log",
         "file.txt",
         "write_to_file.log",
+        "file.txt",
         "file.txt",
         "file.txt"
     ]
@@ -97,7 +112,8 @@ def test_several_output_files(pipelines, tmp_path):
         "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2"
+        "sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2",
+        "sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2",
     ]
 
 
@@ -109,8 +125,9 @@ def test_summarize_multiple_pipelines(pipelines, tmp_path):
 
     summary = summarize_results(tmp_path, sort_rows_by=["step_start"])
 
-    assert len(summary.index) == 7
+    assert len(summary.index) == 8
     assert summary["results_group"].to_list() == [
+        "files_spec",
         "files_spec",
         "files_spec",
         "files_spec",
@@ -123,6 +140,7 @@ def test_summarize_multiple_pipelines(pipelines, tmp_path):
         "create_file.log",
         "file.txt",
         "write_to_file.log",
+        "file.txt",
         "file.txt",
         "file.txt",
         "bad.log",
@@ -144,13 +162,15 @@ def test_repeat_runs_with_different_args(pipelines, tmp_path):
 
     summary = summarize_results(tmp_path, sort_rows_by=["step_start", "file_path"])
 
-    assert len(summary.index) == 10
+    assert len(summary.index) == 12
     assert summary["results_id"].to_list() == [
         "run_1",
         "run_1",
         "run_1",
         "run_1",
         "run_1",
+        "run_1",
+        "run_2",
         "run_2",
         "run_2",
         "run_2",
@@ -163,6 +183,8 @@ def test_repeat_runs_with_different_args(pipelines, tmp_path):
         "content 1",
         "content 1",
         "content 1",
+        "content 1",
+        "content 2",
         "content 2",
         "content 2",
         "content 2",
@@ -174,8 +196,10 @@ def test_repeat_runs_with_different_args(pipelines, tmp_path):
         "file.txt",
         "file.txt",
         "file.txt",
+        "file.txt",
         "write_to_file.log",
         "create_file.log",
+        "file.txt",
         "file.txt",
         "file.txt",
         "file.txt",
@@ -186,13 +210,16 @@ def test_repeat_runs_with_different_args(pipelines, tmp_path):
         'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
         'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
         'sha256:59e709625682d8e5a571a2b11fa44b54c393869f3a49bb67bea1802fc6937972',
+        'sha256:59e709625682d8e5a571a2b11fa44b54c393869f3a49bb67bea1802fc6937972',
         'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
         'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
         'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
         'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
         'sha256:6f8a19765e9146cdf2bd4e4693bc2ce17705df9daa302dbd2ae5d6e052b51863',
-        'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+        'sha256:6f8a19765e9146cdf2bd4e4693bc2ce17705df9daa302dbd2ae5d6e052b51863',
+        'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
     ]
+
 
 def test_repeat_runs_with_done_files_and_skipping(pipelines, tmp_path):
     args = {"work_dir": tmp_path.as_posix()}
@@ -201,15 +228,17 @@ def test_repeat_runs_with_done_files_and_skipping(pipelines, tmp_path):
 
     summary = summarize_results(tmp_path, sort_rows_by=["step_start", "file_path"])
 
-    assert len(summary.index) == 10
+    assert len(summary.index) == 12
     assert summary["step_skipped"].to_list() == [
         "False",
         "False",
         "False",
         "False",
         "False",
+        "False",
         "True",
         "True",
+        "False",
         "False",
         "False",
         "False",
@@ -219,11 +248,13 @@ def test_repeat_runs_with_done_files_and_skipping(pipelines, tmp_path):
         "out",
         "in",
         "out",
+        "summary",
         "log",
         "log",
         "done",
         "in",
         "out",
+        "summary",
         "log",
     ]
     assert summary["file_path"].to_list() == [
@@ -231,8 +262,10 @@ def test_repeat_runs_with_done_files_and_skipping(pipelines, tmp_path):
         "file.txt",
         "file.txt",
         "file.txt",
+        "file.txt",
         "write_to_file.log",
         "",
+        "file.txt",
         "file.txt",
         "file.txt",
         "file.txt",
@@ -243,8 +276,10 @@ def test_repeat_runs_with_done_files_and_skipping(pipelines, tmp_path):
         'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
         'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
         'sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2',
+        'sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2',
         'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
         '',
+        'sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2',
         'sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2',
         'sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2',
         'sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2',
@@ -257,8 +292,9 @@ def test_summary_row_order(pipelines, tmp_path):
     run(pipelines["files_spec"], tmp_path, results_group="files_spec", args=args)
 
     summary_by_digest = summarize_results(tmp_path, sort_rows_by=["file_digest"])
-    assert len(summary_by_digest.index) == 5
+    assert len(summary_by_digest.index) == 6
     assert summary_by_digest["file_digest"].to_list() == [
+        "sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2",
         "sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2",
         "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -267,20 +303,22 @@ def test_summary_row_order(pipelines, tmp_path):
     ]
 
     summary_by_step_name = summarize_results(tmp_path, sort_rows_by=["step_name"])
-    assert len(summary_by_step_name.index) == 5
+    assert len(summary_by_step_name.index) == 6
     assert summary_by_step_name["step_name"].to_list() == [
         "create file",
         "create file",
         "write to file",
         "write to file",
         "write to file",
+        "write to file",
     ]
 
     summary_by_step_name_and_file_path = summarize_results(tmp_path, sort_rows_by=["step_name", "file_path"])
-    assert len(summary_by_step_name_and_file_path.index) == 5
+    assert len(summary_by_step_name_and_file_path.index) == 6
     assert summary_by_step_name_and_file_path["step_name"].to_list() == [
         "create file",
         "create file",
+        "write to file",
         "write to file",
         "write to file",
         "write to file",
@@ -290,20 +328,23 @@ def test_summary_row_order(pipelines, tmp_path):
         "file.txt",
         "file.txt",
         "file.txt",
+        "file.txt",
         "write_to_file.log",
     ]
 
     summary_by_step_name_and_garbage = summarize_results(tmp_path, sort_rows_by=["step_name", "garbage"])
-    assert len(summary_by_step_name_and_garbage.index) == 5
+    assert len(summary_by_step_name_and_garbage.index) == 6
     assert summary_by_step_name_and_garbage["step_name"].to_list() == [
         "create file",
         "create file",
         "write to file",
         "write to file",
         "write to file",
+        "write to file",
     ]
 
-def test_summary_columns(pipelines, tmp_path):
+
+def test_choose_summary_columns(pipelines, tmp_path):
     run(pipelines["happy_spec"], tmp_path, results_group="happy_spec")
     summary_name_and_digest = summarize_results(tmp_path, columns=["step_name", "file_digest"])
     assert len(summary_name_and_digest.index) == 1
@@ -319,3 +360,37 @@ def test_summary_columns(pipelines, tmp_path):
     assert len(summary_name_and_garbage.index) == 1
     assert list(summary_name_and_garbage.columns) == ["step_name"]
     assert summary_name_and_garbage["step_name"][0] == "hello"
+
+
+def test_collect_custom_columns(fixture_path):
+    file_volume = Path(fixture_path, "custom_columns").as_posix()
+
+    no_such_file_columns = collect_custom_columns(file_volume, "no_such_file")
+    assert not no_such_file_columns
+
+    invalid_columns = collect_custom_columns(file_volume, "invalid.yaml")
+    assert invalid_columns == {"invalid": ",This is not yaml!"}
+
+    list_columns = collect_custom_columns(file_volume, "list.yaml")
+    assert list_columns == {"list": '["this", "is", "a", "list"]'}
+
+    dictionary_columns = collect_custom_columns(file_volume, "dictionary.yaml")
+    assert dictionary_columns == {
+        "key1": "this",
+        "key2": "is",
+        "key3": "a",
+        "key4": "dictionary!",
+    }
+
+
+def test_custom_summary_column(pipelines, tmp_path):
+    args = {"work_dir": tmp_path.as_posix(), "content": "plain text!"}
+    run(pipelines["files_spec"], tmp_path, results_group="files_spec", args=args)
+    summary = summarize_results(tmp_path)
+    assert len(summary.index) == 6
+    assert isnan(summary["file"][0])
+    assert isnan(summary["file"][1])
+    assert summary["file"][2] == "plain text!"
+    assert summary["file"][3] == "plain text!"
+    assert summary["file"][4] == "plain text!"
+    assert summary["file"][5] == "plain text!"

@@ -171,6 +171,28 @@ class Step(YamlData):
               - any/text/any/subdir/**/*.txt
     """
 
+    match_summary: list[str] = field(default_factory=list)
+    """File matching patterns to search for, after running the step, to include when summarizing results.
+
+    This is a list of `glob <https://docs.python.org/3/library/glob.html>`_
+    patterns to search for after running the step.
+    Each of the step's :attr:`volumes` will be searched with the same list of patterns.
+
+    Any matches found will be noted in the :class:`ExecutionRecord`.
+    :attr:`match_summary` is intended to enrich pipeline execution summaries with custom columns.
+    See :attr:`StepResult.files_summary` for how matched files are treated.
+    Unlike :attr:`match_done`, :attr:`match_summary` does not affect step execution.
+
+    .. code-block:: yaml
+
+        steps:
+          - name: match summary example
+            match_summary:
+              - one/specific/file.txt
+              - any/text/*.txt
+              - any/text/any/subdir/**/*.txt
+    """
+
     environment: dict[str, str] = field(default_factory=dict)
     """Environment variables to set inside the step's container.
 
@@ -244,6 +266,7 @@ class Step(YamlData):
             match_done=apply_args(self.match_done, args),
             match_in=apply_args(self.match_in, args),
             match_out=apply_args(self.match_out, args),
+            match_summary=apply_args(self.match_summary, args),
             environment=apply_args(self.environment, args),
             gpus=apply_args(self.gpus, args),
             network_mode=apply_args(self.network_mode, args),
@@ -265,6 +288,7 @@ class Step(YamlData):
             match_done=self.match_done or prototype.match_done,
             match_in=self.match_in or prototype.match_in,
             match_out=self.match_out or prototype.match_out,
+            match_summary=self.match_summary or prototype.match_summary,
             environment={**prototype.environment, **self.environment},
             gpus=self.gpus or prototype.gpus,
             network_mode=self.network_mode or prototype.network_mode,
@@ -386,6 +410,41 @@ class StepResult(YamlData):
     Unlike :attr:`files_done`, :attr:`files_out` does not affect step execution.
     :attr:`files_out` is intended to support auditing for reproducibility
     and comparisons to files used in other steps or pipeline executions.
+    """
+
+    files_summary: dict[str, dict[str, str]] = field(default_factory=dict)
+    """Files that matched the :attr:`Step.match_summary` pattern, to include when summarizing results.
+
+    This is a key-value mapping from host :attr:`Step.volumes` paths to matched files.
+    The keys are strings (host volume paths).
+    The values are nested key-value mappings,
+    where the keys are matched file paths within a volume
+    and the values are content hash digests of the matched files.
+
+    .. code-block:: yaml
+
+        step_results:
+          - name: files summary example
+            files_summary:
+              /host/volume/a: {first_match.txt: 'sha256:93d4e5c7...', second_match.txt: 'sha256:d1b54ec5...'}
+              /host/volume/b: {third_match.txt: 'sha256:a4619a89...'}
+
+    Unlike :attr:`files_done`, :attr:`files_summary` does not affect step execution.
+    :attr:`files_summary` is intended to enrich pipeline execution summaries with custom columns.
+
+    When creating a pipeline execution summary (as with ``proceed summarize ...``)
+    each file from :attr:`files_summary` will be parsed for one or more key-value pairs.
+    Any keys found will be added as columns to the summery document.
+    Values found will be added in corresponding columns and rows for the the same step.
+    The parsing works as follows:
+
+    YAML
+    Matching YAML files will be parsed for top-level key-value mappings.
+    Keys and values will be taken from within the YAML document.
+
+    Other
+    Other matching files will be teated as plaintext.
+    The file name will be taken as one key, and the file text content be taken as the corresponding value.
     """
 
     skipped: bool = False
@@ -645,11 +704,15 @@ class ExecutionRecord(YamlData):
     """
 
 # Config:
-# Write a default config
+# Write a default config for convenience, bootstrapping
+# Write effective config along with execution record
 # Read from first of:
 #   ./proceed_config.yaml
 #   ~/proceed_config.yaml
 #   --config my_config.yaml
-# Summary columns, column order, and row order
+# Any cli params like
+#   summary columns
+#   summary row sort by
+#   Pipeline args
 # YAML formatting options
-# Pipeline args
+# Make equivalent to CLI args?

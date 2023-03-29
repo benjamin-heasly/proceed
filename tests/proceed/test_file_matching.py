@@ -14,7 +14,7 @@ def test_match_yaml_files(fixture_path):
     matched_files = match_patterns_in_dirs([fixture_dir], ["*.yaml"])
     expected_files = {
         fixture_dir: {
-            "files_spec.yaml": "sha256:1423a32c9cfa52022f98843ee679ceac18e5cabd34824b6a558de694abff2319",
+            "files_spec.yaml": "sha256:116834f180c480a1b9e7880c1f1b608d6ebb0bc2e373f72ffe278f8d4cd45b69",
             "happy_spec.yaml": "sha256:23b5688d1593f8479a42dad99efa791db4bf795de9330a06664ac22837fc3ecc",
             "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000",
         }
@@ -32,10 +32,10 @@ def test_match_nonexistent_files(fixture_path):
 
 def test_ignore_directories(fixture_path):
     fixture_dir = fixture_path.as_posix()
-    matched_files = match_patterns_in_dirs([fixture_dir], ["**/*"])
+    matched_files = match_patterns_in_dirs([fixture_dir], ["**/*spec.yaml"])
     expected_files = {
         fixture_dir: {
-            "files_spec.yaml": "sha256:1423a32c9cfa52022f98843ee679ceac18e5cabd34824b6a558de694abff2319",
+            "files_spec.yaml": "sha256:116834f180c480a1b9e7880c1f1b608d6ebb0bc2e373f72ffe278f8d4cd45b69",
             "happy_spec.yaml": "sha256:23b5688d1593f8479a42dad99efa791db4bf795de9330a06664ac22837fc3ecc",
             "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000",
         }

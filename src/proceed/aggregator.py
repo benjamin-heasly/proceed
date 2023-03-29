@@ -2,6 +2,7 @@ import logging
 from typing import Any
 from pathlib import Path
 from pandas import DataFrame
+import yaml
 from proceed.model import ExecutionRecord, Pipeline, Step, Timing, StepResult
 from proceed.file_matching import flatten_matches, file_summary, hash_contents
 
@@ -88,8 +89,35 @@ def summarize_step_and_result(step: Step, result: StepResult) -> list[dict[str, 
     done_files = flatten_matches(result.files_done, file_role="done")
     in_files = flatten_matches(result.files_in, file_role="in")
     out_files = flatten_matches(result.files_out, file_role="out")
+    summary_files = flatten_matches(result.files_summary, file_role="summary")
 
-    all_files = [log_file] + done_files + in_files + out_files
+    all_files = [log_file] + done_files + in_files + out_files + summary_files
 
-    combined_summary = [{**step_summary, **result_summary, **file_summary} for file_summary in all_files]
+    custom_summary = {}
+    for summary_file in summary_files:
+        custom_columns = collect_custom_columns(summary_file["file_volume"], summary_file["file_path"])
+        custom_summary.update(custom_columns)
+
+    combined_summary = [{**step_summary, **result_summary, **file_summary, **custom_summary} for file_summary in all_files]
     return combined_summary
+
+
+def collect_custom_columns(file_volume: str, file_path: str) -> dict[str, str]:
+    path = Path(file_volume, file_path)
+    if not path.is_file() or not path.exists():
+        return {}
+
+    with open(path) as f:
+        content = f.read()
+
+    try:
+        parsed = yaml.safe_load(content)
+        if parsed and isinstance(parsed, dict):
+            return parsed
+
+        logging.info(f"Treating non-dictionary YAML as plain text: {path.as_posix()}")
+
+    except yaml.parser.ParserError:
+        logging.info(f"Treating non-YAML file as plain text: {path.as_posix()}")
+
+    return {path.stem: content.strip()}

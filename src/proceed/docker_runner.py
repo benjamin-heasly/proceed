@@ -103,6 +103,9 @@ def run_step(step: Step, log_path: Path) -> StepResult:
         files_out = match_patterns_in_dirs(volume_dirs, step.match_out)
         logging.info(f"Step '{step.name}': found {count_matches(files_out)} output files.")
 
+        files_summary = match_patterns_in_dirs(volume_dirs, step.match_summary)
+        logging.info(f"Step '{step.name}': found {count_matches(files_summary)} summary files.")
+
         finish = datetime.now(timezone.utc)
         duration = finish - start
 
@@ -116,7 +119,8 @@ def run_step(step: Step, log_path: Path) -> StepResult:
             files_done=files_done,
             files_in=files_in,
             files_out=files_out,
-            timing=Timing(start.isoformat(sep="T"), finish.isoformat(sep="T"), duration.total_seconds())
+            files_summary=files_summary,
+            timing=Timing(start.isoformat(sep="T"), finish.isoformat(sep="T"), duration.total_seconds()),
         )
 
     except docker.errors.ImageNotFound as image_not_found_error:

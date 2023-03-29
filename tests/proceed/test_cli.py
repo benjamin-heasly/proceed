@@ -5,6 +5,7 @@ from pandas import read_csv
 from proceed.cli import main
 from proceed.model import Pipeline, ExecutionRecord, StepResult
 
+
 @fixture
 def alpine_image():
     """The alpine image must be present on the host, and/or we must be on the network."""
@@ -27,7 +28,8 @@ def fixture_specs(fixture_path):
 
 def test_happy_pipeline(fixture_specs, tmp_path, alpine_image):
     pipeline_spec = fixture_specs['happy_spec.yaml'].as_posix()
-    cli_args = ["run", pipeline_spec, '--results-dir', tmp_path.as_posix(), '--results-id', "test", '--args', 'arg_1=quux']
+    cli_args = ["run", pipeline_spec, '--results-dir', tmp_path.as_posix(), '--results-id', "test",
+                '--args', 'arg_1=quux']
     exit_code = main(cli_args)
     assert exit_code == 0
 
@@ -68,7 +70,8 @@ def test_happy_pipeline(fixture_specs, tmp_path, alpine_image):
 
 def test_sad_pipeline(fixture_specs, tmp_path, alpine_image):
     pipeline_spec = fixture_specs['sad_spec.yaml'].as_posix()
-    cli_args = ["run", pipeline_spec, '--results-dir', tmp_path.as_posix(), '--results-id', "test", '--args', 'arg_1=quux']
+    cli_args = ["run", pipeline_spec, '--results-dir', tmp_path.as_posix(), '--results-id', "test",
+                '--args', 'arg_1=quux']
     exit_code = main(cli_args)
     assert exit_code == 1
 
@@ -151,7 +154,7 @@ def test_default_output_dirs(fixture_specs, tmp_path):
     # From the execution record we can discover the step log file(s).
     assert len(pipeline_result.step_results) == 1
     with open(pipeline_result.step_results[0].log_file) as f:
-         step_log = f.read()
+        step_log = f.read()
     assert step_log == "foo\n"
 
     # We should also get a log for the overall execution.
@@ -160,7 +163,7 @@ def test_default_output_dirs(fixture_specs, tmp_path):
     assert proceed_log_out[0].name == "proceed.log"
 
     with open(proceed_log_out[0]) as f:
-         proceed_log = f.read()
+        proceed_log = f.read()
 
     assert "Parsing pipeline specification" in proceed_log
     assert "foo\n" in proceed_log
@@ -197,13 +200,32 @@ def test_summarize_results(fixture_specs, tmp_path):
 
     # The summary should have a file per row, check the summary at that level.
     summary = read_csv(out_path)
-    assert summary["results_group"].to_list() == ["files_spec", "files_spec", "files_spec", "files_spec", "files_spec"]
-    assert summary["file_role"].to_list() == ["log", "out", "in", "log", "out"]
-    assert summary["file_path"].to_list() == ["create_file.log", "file.txt", "file.txt", "write_to_file.log", "file.txt"]
+    assert summary["results_group"].to_list() == [
+        "files_spec",
+        "files_spec",
+        "files_spec",
+        "files_spec",
+        "files_spec",
+        "files_spec"]
+    assert summary["file_role"].to_list() == [
+        "log",
+        "out",
+        "in",
+        "log",
+        "out",
+        "summary"]
+    assert summary["file_path"].to_list() == [
+        "create_file.log",
+        "file.txt",
+        "file.txt",
+        "write_to_file.log",
+        "file.txt",
+        "file.txt"]
     assert summary["file_digest"].to_list() == [
         "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2"
+        "sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2",
+        "sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2",
     ]

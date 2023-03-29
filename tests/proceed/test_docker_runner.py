@@ -178,7 +178,7 @@ def test_step_files_done(alpine_image, fixture_path, tmp_path):
     # The existence of these files should cause the step itself to be skipped.
     expected_files = {
         fixture_dir: {
-            "files_spec.yaml": "sha256:1423a32c9cfa52022f98843ee679ceac18e5cabd34824b6a558de694abff2319",
+            "files_spec.yaml": "sha256:116834f180c480a1b9e7880c1f1b608d6ebb0bc2e373f72ffe278f8d4cd45b69",
             "happy_spec.yaml": "sha256:23b5688d1593f8479a42dad99efa791db4bf795de9330a06664ac22837fc3ecc",
             "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000",
         }
@@ -186,6 +186,7 @@ def test_step_files_done(alpine_image, fixture_path, tmp_path):
     assert step_result.files_done == expected_files
     assert not step_result.files_in
     assert not step_result.files_out
+    assert not step_result.files_summary
     assert step_result.skipped
     assert step_result.exit_code is None
     assert not step_result.log_file
@@ -206,7 +207,7 @@ def test_step_files_in(alpine_image, fixture_path, tmp_path):
     # The existence of these files should be noted, and the step should run normally.
     expected_files = {
         fixture_dir: {
-            "files_spec.yaml": "sha256:1423a32c9cfa52022f98843ee679ceac18e5cabd34824b6a558de694abff2319",
+            "files_spec.yaml": "sha256:116834f180c480a1b9e7880c1f1b608d6ebb0bc2e373f72ffe278f8d4cd45b69",
             "happy_spec.yaml": "sha256:23b5688d1593f8479a42dad99efa791db4bf795de9330a06664ac22837fc3ecc",
             "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000",
         }
@@ -216,6 +217,7 @@ def test_step_files_in(alpine_image, fixture_path, tmp_path):
     assert step_result.files_in == expected_files
     assert not step_result.files_done
     assert not step_result.files_out
+    assert not step_result.files_summary
     assert not step_result.skipped
 
 
@@ -234,7 +236,7 @@ def test_step_files_out(alpine_image, fixture_path, tmp_path):
     # The existence of these files should be noted, and the step should run normally.
     expected_files = {
         fixture_dir: {
-            "files_spec.yaml": "sha256:1423a32c9cfa52022f98843ee679ceac18e5cabd34824b6a558de694abff2319",
+            "files_spec.yaml": "sha256:116834f180c480a1b9e7880c1f1b608d6ebb0bc2e373f72ffe278f8d4cd45b69",
             "happy_spec.yaml": "sha256:23b5688d1593f8479a42dad99efa791db4bf795de9330a06664ac22837fc3ecc",
             "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000",
         }
@@ -244,6 +246,36 @@ def test_step_files_out(alpine_image, fixture_path, tmp_path):
     assert step_result.files_out == expected_files
     assert not step_result.files_in
     assert not step_result.files_done
+    assert not step_result.files_summary
+    assert not step_result.skipped
+
+
+def test_step_files_summary(alpine_image, fixture_path, tmp_path):
+    fixture_dir = fixture_path.as_posix()
+    step = Step(
+        name="files summary",
+        image=alpine_image.tags[0],
+        command=["echo", "hello files summary"],
+        volumes={fixture_dir: "/fixture_files"},
+        match_summary=["*.yaml", "*.ignore"]
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+
+    # The runner should find yaml files in the working dir, "tests/proceed/fixture_files".
+    # The existence of these files should be noted, and the step should run normally.
+    expected_files = {
+        fixture_dir: {
+            "files_spec.yaml": "sha256:116834f180c480a1b9e7880c1f1b608d6ebb0bc2e373f72ffe278f8d4cd45b69",
+            "happy_spec.yaml": "sha256:23b5688d1593f8479a42dad99efa791db4bf795de9330a06664ac22837fc3ecc",
+            "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000",
+        }
+    }
+    assert step_result.exit_code == 0
+    assert read_step_logs(step_result) == "hello files summary\n"
+    assert step_result.files_summary == expected_files
+    assert not step_result.files_in
+    assert not step_result.files_done
+    assert not step_result.files_out
     assert not step_result.skipped
 
 
