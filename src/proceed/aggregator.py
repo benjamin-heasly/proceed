@@ -12,7 +12,7 @@ def summarize_results(results_path: Path, columns: list[str] = None, sort_rows_b
     for group_path in group_paths:
         id_paths = [path for path in group_path.iterdir() if path.is_dir()]
         for id_path in id_paths:
-            for yaml_file in id_path.glob("*.y*ml"):
+            for yaml_file in id_path.glob("execution_record.yaml"):
                 execution_record = safe_read_execution_record(yaml_file)
                 if execution_record:
                     execution_summary = summarize_execution(id_path.stem, group_path.stem, execution_record)

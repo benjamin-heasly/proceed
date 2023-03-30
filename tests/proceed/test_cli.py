@@ -1,4 +1,5 @@
 import docker
+import yaml
 from pathlib import Path
 from pytest import fixture, raises
 from pandas import read_csv
@@ -66,6 +67,12 @@ def test_happy_pipeline(fixture_specs, tmp_path, alpine_image):
     assert "Parsing pipeline specification" in log
     assert "quux\n" in log
     assert log.endswith("OK.\n")
+
+    # The cli should write out the effective config that was used
+    with open(Path(tmp_path, "happy_spec", "test", "effective_options.yaml")) as f:
+        effective_config_options = yaml.safe_load(f.read())
+    assert effective_config_options["results_dir"] == tmp_path.as_posix()
+    assert effective_config_options["args"] == {"arg_1": "quux"}
 
 
 def test_sad_pipeline(fixture_specs, tmp_path, alpine_image):
@@ -144,7 +151,7 @@ def test_default_output_dirs(fixture_specs, tmp_path):
     group_dir = Path(tmp_path, "happy_spec")
 
     # We should get an execution record.
-    yaml_out = list(group_dir.glob("**/*.yaml"))
+    yaml_out = list(group_dir.glob("**/execution_record.yaml"))
     assert len(yaml_out) == 1
     assert yaml_out[0].name == "execution_record.yaml"
 

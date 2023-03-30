@@ -1,0 +1,3 @@
+results_dir: /local/results/dir
+args: {data_dir: /local/data/dir}
+yaml_options: {default_flow_style: True}

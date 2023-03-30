@@ -1,11 +1,12 @@
 import sys
 import logging
+import yaml
 from pathlib import Path
 from datetime import datetime, timezone
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser
 from typing import Optional, Sequence
 from proceed.model import Pipeline
-from proceed.config_options import ConfigOptions
+from proceed.config_options import ConfigOptions, resolve_config_options
 from proceed.docker_runner import run_pipeline
 from proceed.aggregator import summarize_results
 from proceed.__about__ import __version__ as proceed_version
@@ -28,24 +29,24 @@ def set_up_logging(log_file: str = None):
     logging.info(version_string)
 
 
-def run(cli_args: Namespace) -> int:
+def run(spec: str, config_options: ConfigOptions) -> int:
     """Execute a pipeline for "proceed run spec ..."""
 
-    if not cli_args.spec:
+    if not spec:
         logging.error("You must provide a pipeline spec to the run operation.")
         return -1
 
     # Choose where to write outputs.
-    out_path = Path(cli_args.results_dir)
+    out_path = Path(config_options.results_dir.value)
 
-    if cli_args.results_group:
-        group_path = Path(out_path, cli_args.results_group)
+    if config_options.results_group.value:
+        group_path = Path(out_path, config_options.results_group.value)
     else:
-        spec_path = Path(cli_args.spec)
+        spec_path = Path(spec)
         group_path = Path(out_path, spec_path.stem)
 
-    if cli_args.results_id:
-        execution_path = Path(group_path, cli_args.results_id)
+    if config_options.results_id.value:
+        execution_path = Path(group_path, config_options.results_id.value)
     else:
         execution_time = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%Z')
         execution_path = Path(group_path, execution_time)
@@ -53,32 +54,32 @@ def run(cli_args: Namespace) -> int:
     execution_path.mkdir(parents=True, exist_ok=True)
 
     # Log to the output path and to the console.
-    log_file = Path(execution_path, "proceed.log")
-    set_up_logging(log_file)
-
-    # TODO: write the effective config as yaml to the execution dir
+    log_path = Path(execution_path, "proceed.log")
+    set_up_logging(log_path)
 
     logging.info(f"Using output directory: {execution_path.as_posix()}")
 
-    logging.info(f"Parsing pipeline specification from: {cli_args.spec}")
-    with open(cli_args.spec) as spec:
-        pipeline = Pipeline.from_yaml(spec.read())
+    # Record the effective options we're using for this run.
+    effective_options_path = Path(execution_path, "effective_options.yaml")
+    logging.info(f"Writing effective config options to: {effective_options_path.as_posix()}")
+    effective_options_yaml = yaml.safe_dump(config_options.to_dict(), **config_options.yaml_options.value)
+    with open(effective_options_path, "w") as f:
+        f.write(effective_options_yaml)
 
-    # TODO: get from config_options.args.parse_key_value_pairs()
-    pipeline_args = {}
-    if cli_args.args:
-        for kvp in cli_args.args:
-            (k, v) = kvp.split("=")
-            pipeline_args[k] = v
+    logging.info(f"Parsing pipeline specification from: {spec}")
+    with open(spec) as f:
+        pipeline = Pipeline.from_yaml(f.read())
 
-    logging.info(f"Running pipeline with args: {pipeline_args}")
-    pipeline_result = run_pipeline(pipeline, execution_path, pipeline_args)
+    logging.info(f"Running pipeline with args: {config_options.args.value}")
+    pipeline_result = run_pipeline(pipeline, execution_path, config_options.args.value)
 
-    record_file = Path(execution_path, "execution_record.yaml")
-    logging.info(f"Writing execution record to: {record_file}")
-    # TODO: get yaml.safe_dump kwargs from config_options.yaml_options.parse_key_value_pairs()
-    with open(record_file, "w") as record:
-        record.write(pipeline_result.to_yaml(skip_empty=cli_args.yaml_skip_empty))
+    record_path = Path(execution_path, "execution_record.yaml")
+    logging.info(f"Writing execution record to: {record_path}")
+    with open(record_path, "w") as record:
+        record.write(pipeline_result.to_yaml(
+            skip_empty=config_options.yaml_skip_empty.value,
+            dump_args=config_options.yaml_options.value
+        ))
 
     error_count = sum((not not step_result.exit_code) for step_result in pipeline_result.step_results)
     if error_count:
@@ -91,18 +92,18 @@ def run(cli_args: Namespace) -> int:
         return 0
 
 
-def summarize(cli_args: Namespace) -> int:
+def summarize(config_options: ConfigOptions) -> int:
     """Collect and organize results for "proceed summarize ..."""
 
     # Choose where to look for previous results.
-    results_path = Path(cli_args.results_dir)
+    results_path = Path(config_options.results_dir.value)
     logging.info(f"Summarizing results from {results_path.as_posix()}")
 
-    summary = summarize_results(results_path, columns=cli_args.summary_columns,
-                                sort_rows_by=cli_args.summary_sort_rows_by)
+    summary = summarize_results(results_path, columns=config_options.summary_columns.value,
+                                sort_rows_by=config_options.summary_sort_rows_by.value)
 
     # Choose where to write the summary of results.
-    out_file = Path(cli_args.summary_file)
+    out_file = Path(config_options.summary_file.value)
     logging.info(f"Writing summary to {out_file.as_posix()}")
     summary.to_csv(out_file)
 
@@ -123,28 +124,29 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     default_config_options = ConfigOptions()
     for option_name in default_config_options.option_names():
-        config_option = default_config_options.option(option_name)
+        config_option = default_config_options.config_option(option_name)
         parser.add_argument(
             config_option.cli_long_name,
             config_option.cli_short_name,
             default=config_option.value,
             type=config_option.cli_type,
+            action=config_option.cli_action,
             nargs=config_option.cli_nargs,
             help=config_option.cli_help_with_default(),
         )
 
     cli_args = parser.parse_args(argv)
 
-    # TODO: resolve effective config from multiple sources
-
     set_up_logging()
 
-    # TODO: pass effective config, not cli_args, to operations
+    preferred_options = vars(cli_args)
+    config_options = resolve_config_options(preferred_options)
+
     match cli_args.operation:
         case "run":
-            exit_code = run(cli_args)
+            exit_code = run(cli_args.spec, config_options)
         case "summarize":
-            exit_code = summarize(cli_args)
+            exit_code = summarize(config_options)
         case _:  # pragma: no cover
             # We don't expect this to happen -- argparse should error before we get here.
             logging.error(f"Unsupported operation: {cli_args.operation}")

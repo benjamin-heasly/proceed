@@ -88,8 +88,13 @@ def test_model_round_trip():
 
 
 def test_yaml_collection_style():
+    dump_args = {
+        "sort_keys": False,
+        "default_flow_style": None,
+        "width": 1000
+    }
     pipeline = Pipeline.from_yaml(pipeline_spec)
-    pipeline_yaml = Pipeline.to_yaml(pipeline)
+    pipeline_yaml = pipeline.to_yaml(dump_args=dump_args)
     # want simple collections on one line, nested collections on multiple lines.
     assert "version: 0.0.42\n" in pipeline_yaml
     assert "  volumes: {/dir_a_1: /foo/a1, /dir_a_2: /bar/a2}\n" in pipeline_yaml

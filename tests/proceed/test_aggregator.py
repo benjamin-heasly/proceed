@@ -71,8 +71,10 @@ def test_only_log_file(pipelines, tmp_path):
 def test_ignore_irrelevant_yaml(pipelines, tmp_path):
     execution_path = run(pipelines["happy_spec"], tmp_path, results_group="happy_spec")
 
-    irrelevant_path = Path(execution_path, "irrelevant.yaml")
-    with open(irrelevant_path, "w") as f:
+    irrelevant_path = Path(execution_path.parent, "irrelevant")
+    irrelevant_path.mkdir(parents=True, exist_ok=True)
+    malformed_path = Path(irrelevant_path, "execution_record.yaml")
+    with open(malformed_path, "w") as f:
         f.write(",this is irrelevant, it's not even yaml!")
 
     summary = summarize_results(tmp_path)

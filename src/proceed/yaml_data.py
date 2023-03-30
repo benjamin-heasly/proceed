@@ -26,14 +26,13 @@ class YamlData():
     field names and types -- these do not write or use custom YAML tags.
     """
 
-    def to_yaml(self, skip_empty: bool = True) -> str:
+    def to_yaml(self, skip_empty: bool = True, dump_args: dict[str, Any] = {}) -> str:
         """Dump self to a plain YAML string without custom YAML tags."""
 
         self_dict = self.to_dict()
         if skip_empty:
             self_dict = remove_empty_values(self_dict)
-        # TODO: propagate dump kwargs from current config options
-        self_yaml = yaml.safe_dump(self_dict, sort_keys=False, default_flow_style=None, width=1000)
+        self_yaml = yaml.safe_dump(self_dict, **dump_args)
         return self_yaml
 
     @classmethod
