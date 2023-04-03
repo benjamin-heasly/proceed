@@ -38,7 +38,7 @@ def test_step_image_not_found(tmp_path):
     step_result = run_step(step, Path(tmp_path, "step.log"))
     assert step_result.name == step.name
     assert step_result.image_id == None
-    assert step_result.exit_code == None
+    assert step_result.exit_code == -1
     assert "no_such_image, repository does not exist" in read_step_logs(step_result)
 
 
@@ -47,7 +47,7 @@ def test_step_command_not_found(alpine_image, tmp_path):
     step_result = run_step(step, Path(tmp_path, "step.log"))
     assert step_result.name == step.name
     assert step_result.image_id == None
-    assert step_result.exit_code == None
+    assert step_result.exit_code == -1
     assert '"no_such_command": executable file not found' in read_step_logs(step_result)
 
 

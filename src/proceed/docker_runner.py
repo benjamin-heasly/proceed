@@ -131,7 +131,8 @@ def run_step(step: Step, log_path: Path) -> StepResult:
         return StepResult(
             name=step.name,
             log_file=log_path.as_posix(),
-            timing=Timing(start.isoformat(sep="T"))
+            timing=Timing(start.isoformat(sep="T")),
+            exit_code=-1
         )
 
     except docker.errors.APIError as api_error:
@@ -143,7 +144,8 @@ def run_step(step: Step, log_path: Path) -> StepResult:
         return StepResult(
             name=step.name,
             log_file=log_path.as_posix(),
-            timing=Timing(start.isoformat(sep="T"))
+            timing=Timing(start.isoformat(sep="T")),
+            exit_code=-1
         )
 
     except OSError as os_error: # pragma: no cover
@@ -158,7 +160,8 @@ def run_step(step: Step, log_path: Path) -> StepResult:
         return StepResult(
             name=step.name,
             log_file=log_path.as_posix(),
-            timing=Timing(start.isoformat(sep="T"))
+            timing=Timing(start.isoformat(sep="T")),
+            exit_code=-1
         )
 
 
