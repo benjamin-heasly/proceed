@@ -94,7 +94,6 @@ def run_step(step: Step, log_path: Path) -> StepResult:
 
         # Collect overall logs and status of the finished procedss.
         run_results = container.wait()
-        step_logs = container.logs(stdout=True, stderr=True, stream=False).decode("utf-8")
         step_exit_code = run_results['StatusCode']
         logging.info(f"Step '{step.name}': process completed with exit code {step_exit_code}")
 
@@ -128,7 +127,7 @@ def run_step(step: Step, log_path: Path) -> StepResult:
         with open(log_path, 'w') as f:
             f.write(error_message)
 
-        logging.error(f"Step '{step.name}': error --\n {error_message}")
+        logging.error(f"Step '{step.name}': ImageNotFound error --\n {error_message}")
         return StepResult(
             name=step.name,
             log_file=log_path.as_posix(),
@@ -140,7 +139,22 @@ def run_step(step: Step, log_path: Path) -> StepResult:
         with open(log_path, 'w') as f:
             f.write(error_message)
 
-        logging.error(f"Step '{step.name}': error --\n {error_message}")
+        logging.error(f"Step '{step.name}': APIError error --\n {error_message}")
+        return StepResult(
+            name=step.name,
+            log_file=log_path.as_posix(),
+            timing=Timing(start.isoformat(sep="T"))
+        )
+
+    except OSError as os_error: # pragma: no cover
+        # This is a fallback for really unexpected errors calling Docker,
+        # for example: https://github.com/docker/for-win/issues/13324
+        # I don't know a good way to induce this case in tests, hence the "no cover"
+        error_message = f"errno {os_error.errno}: {os_error.strerror} {os_error.filename}"
+        with open(log_path, 'w') as f:
+            f.write(error_message)
+
+        logging.error(f"Step '{step.name}': OSError error --\n {error_message}")
         return StepResult(
             name=step.name,
             log_file=log_path.as_posix(),
