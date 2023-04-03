@@ -152,7 +152,7 @@ def run_step(step: Step, log_path: Path) -> StepResult:
         # This is a fallback for really unexpected errors calling Docker,
         # for example: https://github.com/docker/for-win/issues/13324
         # I don't know a good way to induce this case in tests, hence the "no cover"
-        error_message = f"errno {os_error.errno}: {os_error.strerror} {os_error.filename}"
+        error_message = f"{type(os_error).__name__}: {os_error.args}"
         with open(log_path, 'w') as f:
             f.write(error_message)
 
