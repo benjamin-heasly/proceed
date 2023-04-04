@@ -72,8 +72,8 @@ def summarize_pipeline(results_id: str, group: str, pipeline: Pipeline, timing: 
 def summarize_step_and_result(step: Step, result: StepResult) -> list[dict[str, Any]]:
     step_summary = {f"step_{key}": str(value) for key, value in step.to_dict().items()}
 
-    special_result_fields = ["timing", "log_file", "files_done", "files_in", "files_out"]
-    result_summary = {f"step_{key}": str(value) for key, value in result.to_dict().items() if key not in special_result_fields}
+    flattened_step_attributes = {"timing", "log_file", "files_done", "files_in", "files_out", "files_summary"}
+    result_summary = {f"step_{key}": str(value) for key, value in result.to_dict().items() if key not in flattened_step_attributes}
 
     result_summary["step_start"] = result.timing.start
     result_summary["step_finish"] = result.timing.finish

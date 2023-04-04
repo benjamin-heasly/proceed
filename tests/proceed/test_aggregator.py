@@ -384,6 +384,14 @@ def test_collect_custom_columns(fixture_path):
         "key4": "dictionary!",
     }
 
+    json_dictionary_columns = collect_custom_columns(file_volume, "dictionary.json")
+    assert json_dictionary_columns == {
+        "key1": "this",
+        "key2": "is",
+        "key3": "a",
+        "key4": "dictionary!",
+    }
+
 
 def test_custom_summary_column(pipelines, tmp_path):
     args = {"work_dir": tmp_path.as_posix(), "content": "plain text!"}
@@ -396,3 +404,11 @@ def test_custom_summary_column(pipelines, tmp_path):
     assert summary["file"][3] == "plain text!"
     assert summary["file"][4] == "plain text!"
     assert summary["file"][5] == "plain text!"
+
+    summary_columns = set(summary.columns)
+    assert not "step_timing" in summary_columns
+    assert not "step_log_file" in summary_columns
+    assert not "step_files_done" in summary_columns
+    assert not "step_files_in" in summary_columns
+    assert not "step_files_out" in summary_columns
+    assert not "step_files_summary" in summary_columns
