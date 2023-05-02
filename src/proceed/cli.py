@@ -75,7 +75,8 @@ def run(spec: str, config_options: ConfigOptions) -> int:
         original=pipeline,
         execution_path=execution_path,
         args=config_options.args.value,
-        force_rerun=config_options.force_rerun.value)
+        force_rerun=config_options.force_rerun.value,
+        step_names=config_options.step_names.value)
 
     record_path = Path(execution_path, "execution_record.yaml")
     logging.info(f"Writing execution record to: {record_path}")
@@ -119,7 +120,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("operation",
                         type=str,
                         choices=["run", "summarize"],
-                        help="operation to perform: run a pipeline or summarize results from multiple runs."),
+                        help="operation to perform: run a pipeline or summarize results from multiple runs"),
     parser.add_argument("spec",
                         type=str,
                         nargs="?",

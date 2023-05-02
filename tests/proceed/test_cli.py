@@ -245,17 +245,17 @@ def test_force_rerun(fixture_specs, tmp_path):
     pipeline_spec = fixture_specs['files_spec.yaml'].as_posix()
     work_dir = Path(tmp_path, "work").as_posix()
     first_args = ["run", pipeline_spec,
-                '--results-dir', tmp_path.as_posix(),
-                '--args', f"work_dir={work_dir}",
-                '--results-id', "test_1"]
+                  '--results-dir', tmp_path.as_posix(),
+                  '--args', f"work_dir={work_dir}",
+                  '--results-id', "test_1"]
     first_exit_code = main(first_args)
     assert first_exit_code == 0
 
     second_args = ["run", pipeline_spec,
-                '--results-dir', tmp_path.as_posix(),
-                '--args', f"work_dir={work_dir}",
-                '--results-id', "test_2",
-                '--force-rerun']
+                   '--results-dir', tmp_path.as_posix(),
+                   '--args', f"work_dir={work_dir}",
+                   '--results-id', "test_2",
+                   '--force-rerun']
     second_exit_code = main(second_args)
     assert second_exit_code == 0
 
@@ -269,3 +269,28 @@ def test_force_rerun(fixture_specs, tmp_path):
     assert "file.txt" in rerun_create_file.files_done[work_dir]
     assert rerun_create_file.exit_code == 0
     assert rerun_create_file.skipped == False
+
+
+def test_steps_to_run(fixture_specs, tmp_path):
+    pipeline_spec = fixture_specs['happy_spec.yaml'].as_posix()
+
+    run_hello_args = ["run", pipeline_spec,
+                      '--results-dir', tmp_path.as_posix(),
+                      '--results-id', 'test_1',
+                      '--step-names', 'hello']
+    run_hello_exit_code = main(run_hello_args)
+    assert run_hello_exit_code == 0
+    with open(Path(tmp_path, "happy_spec", "test_1", "execution_record.yaml")) as f:
+        run_hello_result = ExecutionRecord.from_yaml(f.read())
+    assert len(run_hello_result.step_results) == 1
+    assert run_hello_result.step_results[0].name == "hello"
+
+    skip_hello_args = ["run", pipeline_spec,
+                      '--results-dir', tmp_path.as_posix(),
+                      '--results-id', 'test_2',
+                      '--step-names', 'garbage']
+    skip_hello_exit_code = main(skip_hello_args)
+    assert skip_hello_exit_code == 0
+    with open(Path(tmp_path, "happy_spec", "test_2", "execution_record.yaml")) as f:
+        skip_hello_result = ExecutionRecord.from_yaml(f.read())
+    assert len(skip_hello_result.step_results) == 0

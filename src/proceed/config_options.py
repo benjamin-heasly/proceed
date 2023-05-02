@@ -123,6 +123,15 @@ class ConfigOptions():
         cli_help="force steps to rerun, even if they have done files",
     ))
 
+    step_names: ConfigOption = field(default_factory=lambda: ConfigOption(
+        cli_long_name="--step-names",
+        cli_short_name="-n",
+        cli_nargs="+",
+        cli_type=str,
+        cli_help="explicit list of step names to run",
+        cli_help_default="run all steps",
+    ))
+
     summary_file: ConfigOption = field(default_factory=lambda: ConfigOption(
         value="./summary.csv",
         cli_long_name="--summary-file",

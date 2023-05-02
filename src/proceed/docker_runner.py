@@ -11,10 +11,11 @@ def run_pipeline(
         original: Pipeline,
         execution_path: Path,
         args: dict[str, str] = {},
-        force_rerun: bool = False
+        force_rerun: bool = False,
+        step_names: list[str] = None
 ) -> ExecutionRecord:
     """
-    Run a pipeline with all its steps and return results.
+    Run steps of a pipeline and return results.
 
     :param original: a Pipeline, as read from an input YAML spec
     :return: a summary of Pipeline execution results.
@@ -28,6 +29,10 @@ def run_pipeline(
     amended = original._with_args_applied(args)._with_prototype_applied()
     step_results = []
     for step in amended.steps:
+        if step_names and not step.name in step_names:
+            logging.info(f"Ignoring step '{step.name}', not in list of steps to run: {step_names}")
+            continue
+
         log_stem = step.name.replace(" ", "_")
         log_path = Path(execution_path, f"{log_stem}.log")
         step_result = run_step(step, log_path, force_rerun)

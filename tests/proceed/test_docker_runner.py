@@ -432,3 +432,37 @@ def test_pipeline_with_network_config(alpine_image, tmp_path):
     assert pipeline_result.step_results[1].exit_code == 0
     assert "eth0" not in read_step_logs(pipeline_result.step_results[1])
     assert "HWaddr" not in read_step_logs(pipeline_result.step_results[1])
+
+
+def test_pipeline_steps_to_run(alpine_image, tmp_path):
+    pipeline = Pipeline(
+        steps=[
+            Step(name="step 1", image=alpine_image.tags[0], command=["echo", "hello 1"]),
+            Step(name="step 2", image=alpine_image.tags[0], command=["echo", "hello 2"]),
+            Step(name="step 3", image=alpine_image.tags[0], command=["echo", "hello 3"])
+        ]
+    )
+
+    default_run_all = run_pipeline(pipeline, tmp_path)
+    assert len(default_run_all.step_results) == 3
+    assert default_run_all.step_results[0].name == "step 1"
+    assert default_run_all.step_results[1].name == "step 2"
+    assert default_run_all.step_results[2].name == "step 3"
+
+    none_garbage = run_pipeline(pipeline, tmp_path, step_names=['garbage'])
+    assert len(none_garbage.step_results) == 0
+
+    middle_only = run_pipeline(pipeline, tmp_path, step_names=['step 2'])
+    assert len(middle_only.step_results) == 1
+    assert middle_only.step_results[0].name == "step 2"
+
+    skip_middle = run_pipeline(pipeline, tmp_path, step_names=['step 1', 'step 3'])
+    assert len(skip_middle.step_results) == 2
+    assert skip_middle.step_results[0].name == "step 1"
+    assert skip_middle.step_results[1].name == "step 3"
+
+    explicit_run_all = run_pipeline(pipeline, tmp_path, step_names=['step 1', 'step 2', 'step 3'])
+    assert len(explicit_run_all.step_results) == 3
+    assert explicit_run_all.step_results[0].name == "step 1"
+    assert explicit_run_all.step_results[1].name == "step 2"
+    assert explicit_run_all.step_results[2].name == "step 3"
