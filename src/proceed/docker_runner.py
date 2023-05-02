@@ -7,7 +7,12 @@ from proceed.model import Pipeline, ExecutionRecord, Step, StepResult, Timing
 from proceed.file_matching import count_matches, match_patterns_in_dirs
 
 
-def run_pipeline(original: Pipeline, execution_path: Path, args: dict[str, str] = {}) -> ExecutionRecord:
+def run_pipeline(
+        original: Pipeline,
+        execution_path: Path,
+        args: dict[str, str] = {},
+        force_rerun: bool = False
+) -> ExecutionRecord:
     """
     Run a pipeline with all its steps and return results.
 
@@ -25,7 +30,7 @@ def run_pipeline(original: Pipeline, execution_path: Path, args: dict[str, str] 
     for step in amended.steps:
         log_stem = step.name.replace(" ", "_")
         log_path = Path(execution_path, f"{log_stem}.log")
-        step_result = run_step(step, log_path)
+        step_result = run_step(step, log_path, force_rerun)
         step_results.append(step_result)
         if step_result.exit_code:
             logging.error("Stopping pipeline run after error.")
@@ -44,7 +49,7 @@ def run_pipeline(original: Pipeline, execution_path: Path, args: dict[str, str] 
     )
 
 
-def run_step(step: Step, log_path: Path) -> StepResult:
+def run_step(step: Step, log_path: Path, force_rerun: bool = False) -> StepResult:
     logging.info(f"Step '{step.name}': starting.")
 
     start = datetime.now(timezone.utc)
@@ -52,13 +57,18 @@ def run_step(step: Step, log_path: Path) -> StepResult:
     volume_dirs = step.volumes.keys()
     files_done = match_patterns_in_dirs(volume_dirs, step.match_done)
     if files_done:
-        logging.info(f"Step '{step.name}': found {count_matches(files_done)} done files, skipping execution.")
-        return StepResult(
-            name=step.name,
-            skipped=True,
-            files_done=files_done,
-            timing=Timing(start.isoformat(sep="T"))
-        )
+        logging.info(f"Step '{step.name}': found {count_matches(files_done)} done files.")
+
+        if force_rerun:
+            logging.info(f"Step '{step.name}': executing despite done files because force_rerun is {force_rerun}.")
+        else:
+            logging.info(f"Step '{step.name}': skipping execution because done files were found.")
+            return StepResult(
+                name=step.name,
+                skipped=True,
+                files_done=files_done,
+                timing=Timing(start.isoformat(sep="T"))
+            )
 
     files_in = match_patterns_in_dirs(volume_dirs, step.match_in)
     logging.info(f"Step '{step.name}': found {count_matches(files_in)} input files.")
@@ -148,7 +158,7 @@ def run_step(step: Step, log_path: Path) -> StepResult:
             exit_code=-1
         )
 
-    except OSError as os_error: # pragma: no cover
+    except OSError as os_error:  # pragma: no cover
         # This is a fallback for really unexpected errors calling Docker,
         # for example: https://github.com/docker/for-win/issues/13324
         # I don't know a good way to induce this case in tests, hence the "no cover"

@@ -150,8 +150,9 @@ def test_step_gpus(ubuntu_image, tmp_path):
     # We don't actually care if the process was able to use a gpu.
     # So, we'll check for two expected outcomes, assuming we at least *requested* the gpu.
     if step_result.exit_code == 0: # pragma: no cover
-        # This is actually the unusual case for testing on laptops, github actions, etc.
-        # So we don't ask pytest-cov to track coverage for this branch.
+        # Host seems to have docker "--gpus" support.
+        # This is expected when testing installation on real hardware.
+        # But not in CI, so we don't ask pytest-cov to track coverage for this case.
 
         # Host seems to have docker "--gpus" support.
         assert step_result.timing._is_complete()
@@ -159,6 +160,7 @@ def test_step_gpus(ubuntu_image, tmp_path):
     else:
         # Host seems not to have docker "--gpus" support, check for relevant error, as in:
         # https://github.com/NVIDIA/nvidia-docker/issues/1034
+        # This is the usual case when testing on laptops, CI, etc. where there's no GPU.
         assert not step_result.timing._is_complete()
         assert 'could not select device driver "" with capabilities: [[gpu]]' in read_step_logs(step_result)
 
@@ -168,7 +170,7 @@ def test_step_files_done(alpine_image, fixture_path, tmp_path):
     step = Step(
         name="files done",
         image=alpine_image.tags[0],
-        command=["echo 'this should be skipped'"],
+        command=["echo", "this should be skipped"],
         volumes={fixture_dir: "/fixture_files"},
         match_done=["*.yaml", "*.ignore"]
     )
@@ -190,6 +192,34 @@ def test_step_files_done(alpine_image, fixture_path, tmp_path):
     assert step_result.skipped
     assert step_result.exit_code is None
     assert not step_result.log_file
+
+
+def test_step_files_done_force_rerun(alpine_image, fixture_path, tmp_path):
+    fixture_dir = fixture_path.as_posix()
+    step = Step(
+        name="files done force rerun",
+        image=alpine_image.tags[0],
+        command=["echo", "this should be re-run"],
+        volumes={fixture_dir: "/fixture_files"},
+        match_done=["*.yaml", "*.ignore"]
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"), force_rerun=True)
+
+    # The runner should find yaml files in the working dir, "tests/proceed/fixture_files".
+    # The despite existence of these files, force_rerun should cause the step to be re-run.
+    expected_files = {
+        fixture_dir: {
+            "files_spec.yaml": "sha256:116834f180c480a1b9e7880c1f1b608d6ebb0bc2e373f72ffe278f8d4cd45b69",
+            "happy_spec.yaml": "sha256:23b5688d1593f8479a42dad99efa791db4bf795de9330a06664ac22837fc3ecc",
+            "sad_spec.yaml": "sha256:cc428c52c6c015b4680559a540cf0af5c3e7878cd711109b7f0fe0336e40b000",
+        }
+    }
+    assert step_result.files_done == expected_files
+    assert not step_result.files_in
+    assert not step_result.files_out
+    assert not step_result.files_summary
+    assert not step_result.skipped
+    assert step_result.exit_code == 0
 
 
 def test_step_files_in(alpine_image, fixture_path, tmp_path):

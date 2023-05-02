@@ -29,7 +29,9 @@ def fixture_specs(fixture_path):
 
 def test_happy_pipeline(fixture_specs, tmp_path, alpine_image):
     pipeline_spec = fixture_specs['happy_spec.yaml'].as_posix()
-    cli_args = ["run", pipeline_spec, '--results-dir', tmp_path.as_posix(), '--results-id', "test",
+    cli_args = ["run", pipeline_spec,
+                '--results-dir', tmp_path.as_posix(),
+                '--results-id', "test",
                 '--args', 'arg_1=quux']
     exit_code = main(cli_args)
     assert exit_code == 0
@@ -236,3 +238,34 @@ def test_summarize_results(fixture_specs, tmp_path):
         "sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2",
         "sha256:12a61f4e173fb3a11c05d6471f74728f76231b4a5fcd9667cef3af87a3ae4dc2",
     ]
+
+
+def test_force_rerun(fixture_specs, tmp_path):
+    # Run a pipeline that creates a and skips that step if already created.
+    pipeline_spec = fixture_specs['files_spec.yaml'].as_posix()
+    work_dir = Path(tmp_path, "work").as_posix()
+    first_args = ["run", pipeline_spec,
+                '--results-dir', tmp_path.as_posix(),
+                '--args', f"work_dir={work_dir}",
+                '--results-id', "test_1"]
+    first_exit_code = main(first_args)
+    assert first_exit_code == 0
+
+    second_args = ["run", pipeline_spec,
+                '--results-dir', tmp_path.as_posix(),
+                '--args', f"work_dir={work_dir}",
+                '--results-id', "test_2",
+                '--force-rerun']
+    second_exit_code = main(second_args)
+    assert second_exit_code == 0
+
+    with open(Path(tmp_path, "files_spec", "test_2", "execution_record.yaml")) as f:
+        rerun_result = ExecutionRecord.from_yaml(f.read())
+
+    # The step should have done files present *and* results of re-execution
+    rerun_create_file = rerun_result.step_results[0]
+    assert rerun_create_file.name == "create file"
+    assert work_dir in rerun_create_file.files_done
+    assert "file.txt" in rerun_create_file.files_done[work_dir]
+    assert rerun_create_file.exit_code == 0
+    assert rerun_create_file.skipped == False

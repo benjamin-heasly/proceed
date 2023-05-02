@@ -42,6 +42,22 @@ class ConfigOption():
     def cli_help_with_default(self):
         return f"{self.cli_help} (default: {self.cli_help_default})"
 
+    def cli_kwargs(self) -> dict[str, Any]:
+        kwargs = {
+            "default": self.value,
+            "action": self.cli_action,
+            "help": self.cli_help_with_default(),
+        }
+
+        # Annoying: actions like "store_true" blow up when unused args provided.
+        if self.cli_type:
+            kwargs["type"] = self.cli_type
+
+        if self.cli_nargs:
+            kwargs["nargs"] = self.cli_nargs
+
+        return kwargs
+
 
 @dataclass
 class ConfigOptions():
@@ -96,6 +112,15 @@ class ConfigOptions():
         cli_action=KeyValuePairsAction,
         cli_help="one or more arg=value assignments to apply to the pipeline, for example: --args foo=bar baz=quux",
         cli_help_default="no args",
+    ))
+
+    force_rerun: ConfigOption = field(default_factory=lambda: ConfigOption(
+        value=False,
+        cli_long_name="--force-rerun",
+        cli_short_name="-F",
+        cli_action="store_true",
+        cli_type=None,
+        cli_help="force steps to rerun, even if they have done files",
     ))
 
     summary_file: ConfigOption = field(default_factory=lambda: ConfigOption(

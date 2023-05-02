@@ -71,7 +71,11 @@ def run(spec: str, config_options: ConfigOptions) -> int:
         pipeline = Pipeline.from_yaml(f.read())
 
     logging.info(f"Running pipeline with args: {config_options.args.value}")
-    pipeline_result = run_pipeline(pipeline, execution_path, config_options.args.value)
+    pipeline_result = run_pipeline(
+        original=pipeline,
+        execution_path=execution_path,
+        args=config_options.args.value,
+        force_rerun=config_options.force_rerun.value)
 
     record_path = Path(execution_path, "execution_record.yaml")
     logging.info(f"Writing execution record to: {record_path}")
@@ -128,11 +132,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         parser.add_argument(
             config_option.cli_long_name,
             config_option.cli_short_name,
-            default=config_option.value,
-            type=config_option.cli_type,
-            action=config_option.cli_action,
-            nargs=config_option.cli_nargs,
-            help=config_option.cli_help_with_default(),
+            **config_option.cli_kwargs()
         )
 
     cli_args = parser.parse_args(argv)
