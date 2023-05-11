@@ -37,7 +37,7 @@ def run(spec: str, config_options: ConfigOptions) -> int:
         return -1
 
     # Choose where to write outputs.
-    out_path = Path(config_options.results_dir.value)
+    out_path = Path(config_options.results_dir.value).expanduser()
 
     if config_options.results_group.value:
         group_path = Path(out_path, config_options.results_group.value)

@@ -247,7 +247,7 @@ def safe_load_config_options(options_file: str) -> dict[str, Any]:
 
     logging.info(f"Looking for config options in file: {options_file}")
 
-    options_path = Path(options_file)
+    options_path = Path(options_file).expanduser()
     if not options_path.is_file() or not options_path.exists():
         print(f"Skipping not a file or doesn't exist: {options_file}")
         logging.info(f"Skipping not a file or doesn't exist: {options_file}")
