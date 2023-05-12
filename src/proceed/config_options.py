@@ -65,20 +65,20 @@ class ConfigOptions():
 
     user_options_file: ConfigOption = field(default_factory=lambda: ConfigOption(
         value="~/proceed_options.yaml",
-        cli_long_name="--user-options",
+        cli_long_name="--user-options-file",
         cli_short_name="-u",
         cli_help="a user-level options file to search for",
     ))
 
     local_options_file: ConfigOption = field(default_factory=lambda: ConfigOption(
         value="./proceed_options.yaml",
-        cli_long_name="--local-options",
+        cli_long_name="--local-options-file",
         cli_short_name="-l",
         cli_help="a local options file to search for",
     ))
 
     custom_options_file: ConfigOption = field(default_factory=lambda: ConfigOption(
-        cli_long_name="--options",
+        cli_long_name="--custom-options-file",
         cli_short_name="-o",
         cli_help="an artibrary, custom options file to apply, for example: -o my_options.yaml",
     ))

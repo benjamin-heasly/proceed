@@ -286,11 +286,62 @@ def test_steps_to_run(fixture_specs, tmp_path):
     assert run_hello_result.step_results[0].name == "hello"
 
     skip_hello_args = ["run", pipeline_spec,
-                      '--results-dir', tmp_path.as_posix(),
-                      '--results-id', 'test_2',
-                      '--step-names', 'garbage']
+                       '--results-dir', tmp_path.as_posix(),
+                       '--results-id', 'test_2',
+                       '--step-names', 'garbage']
     skip_hello_exit_code = main(skip_hello_args)
     assert skip_hello_exit_code == 0
     with open(Path(tmp_path, "happy_spec", "test_2", "execution_record.yaml")) as f:
         skip_hello_result = ExecutionRecord.from_yaml(f.read())
     assert len(skip_hello_result.step_results) == 0
+
+
+def test_custom_options_file(fixture_path, fixture_specs, tmp_path):
+    pipeline_spec = fixture_specs['happy_spec.yaml'].as_posix()
+    custom_options = Path(fixture_path, 'config_options', 'custom_options.yaml').as_posix()
+    run_args = ["run", pipeline_spec,
+                '--results-dir', tmp_path.as_posix(),
+                '--results-id', 'test',
+                '--custom-options-file', custom_options]
+    exit_code = main(run_args)
+    assert exit_code == 0
+
+    # The cli should pick up the custom options specified with --custom-options-file.
+    with open(Path(tmp_path, "happy_spec", "test", "effective_options.yaml")) as f:
+        effective_config_options = yaml.safe_load(f.read())
+    assert effective_config_options["results_dir"] == tmp_path.as_posix()
+    assert effective_config_options["args"] == {"extra_dir": "/custom/data/dir"}
+
+
+def test_user_options_file(fixture_path, fixture_specs, tmp_path):
+    pipeline_spec = fixture_specs['happy_spec.yaml'].as_posix()
+    user_options = Path(fixture_path, 'config_options', 'user_options.yaml').as_posix()
+    run_args = ["run", pipeline_spec,
+                '--results-dir', tmp_path.as_posix(),
+                '--results-id', 'test',
+                '--user-options-file', user_options]
+    exit_code = main(run_args)
+    assert exit_code == 0
+
+    # The cli should pick up the custom options specified with --user-options-file.
+    with open(Path(tmp_path, "happy_spec", "test", "effective_options.yaml")) as f:
+        effective_config_options = yaml.safe_load(f.read())
+    assert effective_config_options["results_dir"] == tmp_path.as_posix()
+    assert effective_config_options["args"] == {"data_dir": "/user/data/dir"}
+
+
+def test_local_options_file(fixture_path, fixture_specs, tmp_path):
+    pipeline_spec = fixture_specs['happy_spec.yaml'].as_posix()
+    local_options = Path(fixture_path, 'config_options', 'local_options.yaml').as_posix()
+    run_args = ["run", pipeline_spec,
+                '--results-dir', tmp_path.as_posix(),
+                '--results-id', 'test',
+                '--local-options-file', local_options]
+    exit_code = main(run_args)
+    assert exit_code == 0
+
+    # The cli should pick up the custom options specified with --local-options-file.
+    with open(Path(tmp_path, "happy_spec", "test", "effective_options.yaml")) as f:
+        effective_config_options = yaml.safe_load(f.read())
+    assert effective_config_options["results_dir"] == tmp_path.as_posix()
+    assert effective_config_options["args"] == {"data_dir": "/local/data/dir"}
