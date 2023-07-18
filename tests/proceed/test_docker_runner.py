@@ -466,3 +466,36 @@ def test_pipeline_steps_to_run(alpine_image, tmp_path):
     assert explicit_run_all.step_results[0].name == "step 1"
     assert explicit_run_all.step_results[1].name == "step 2"
     assert explicit_run_all.step_results[2].name == "step 3"
+
+
+def test_fail_on_docker_exception(alpine_image, tmp_path):
+    # Misconfigure the docker client to cause a DockerException.
+    bad_client_kwargs = {
+        "timeout": 0
+    }
+    step = Step(
+        name="docker exception",
+        image=alpine_image.tags[0],
+        command=["echo", "should not get this far!"],
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"), client_kwargs=bad_client_kwargs)
+    logs = read_step_logs(step_result)
+    assert "DockerException" in logs
+    assert "should not get this far!" not in logs
+
+
+def test_retry_on_unexpected_exception(alpine_image, tmp_path):
+    # Misconfigure the docker client to cause a TypeError.
+    bad_client_kwargs = "this is not even a dict!"
+    step = Step(
+        name="type error",
+        image=alpine_image.tags[0],
+        command=["echo", "should not get this far!"],
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"), client_kwargs=bad_client_kwargs)
+    logs = read_step_logs(step_result)
+    assert "Container attempts/retries at 1 out of 3." in logs
+    assert "Container attempts/retries at 2 out of 3." in logs
+    assert "Container attempts/retries at 3 out of 3." in logs
+    assert "TypeError" in logs
+    assert "should not get this far!" not in logs
