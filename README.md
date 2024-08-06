@@ -30,8 +30,11 @@ $ pip install proceed # TODO
 You can also install Proceed from source.
 
 ```
+$ pip install git+https://https://github.com/benjamin-heasly/proceed.git
+
+# editable mode
 $ git checkout https://github.com/benjamin-heasly/proceed.git
-$ pip install ./proceed
+$ pip install -e ./proceed
 ```
 
 ## check installation
