@@ -47,3 +47,20 @@ Proceed x.y.z
 $ proceed --help
 usage etc...
 ```
+
+## development and testing
+
+You can set up a development environment with [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) and [dev-environment.yml](./dev-environment.yml).
+
+```
+conda env create -f dev-environment.yml
+# or
+conda env update -f dev-environment.yml
+```
+
+With that, you should be able to run through the Proceed unit and integration tests.
+
+```
+conda activate proceed-dev
+hatch run test:cov
+```
