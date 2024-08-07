@@ -2,7 +2,7 @@ import logging
 from typing import Union, Any
 from datetime import datetime, timezone
 from pathlib import Path
-from os import getuid
+from os import getuid, getgid
 import docker
 from docker.models.containers import Container
 from docker.errors import DockerException, APIError
@@ -149,9 +149,14 @@ def run_container(
                 device_requests.append(docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]]))
 
             if step.user == "host":
-                container_user = getuid()
+                container_user = f"{getuid()}:{getgid()}"
             else:
                 container_user = step.user
+
+            if container_user is None:
+                logging.info(f"Container '{step.name}': running as user {container_user}.")
+            else:
+                logging.info(f"Container '{step.name}': running as default user (might be root).")
 
             client = docker.from_env(**client_kwargs)
             container = client.containers.run(

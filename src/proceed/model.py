@@ -304,6 +304,7 @@ class Step(YamlData):
             gpus=apply_args(self.gpus, args),
             network_mode=apply_args(self.network_mode, args),
             mac_address=apply_args(self.mac_address, args),
+            user=apply_args(self.user, args)
         )
 
     def _with_prototype_applied(self, prototype: Self) -> Self:
@@ -325,7 +326,8 @@ class Step(YamlData):
             environment={**prototype.environment, **self.environment},
             gpus=self.gpus or prototype.gpus,
             network_mode=self.network_mode or prototype.network_mode,
-            mac_address=self.mac_address or prototype.mac_address
+            mac_address=self.mac_address or prototype.mac_address,
+            user=self.user or prototype.user
         )
 
 

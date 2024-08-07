@@ -108,6 +108,7 @@ def test_apply_args_to_step():
         name="$name",
         description="A step named $name",
         image="$org/$repo:$tag",
+        user="$user",
         volumes={
             "/host/$simple": "/container/$simple",
             "/host/$complex": {"bind": "/container/$complex", "mode": "rw"}
@@ -119,6 +120,7 @@ def test_apply_args_to_step():
         "org": "image_org",
         "repo": "image_repo",
         "tag": "image_tag",
+        "user": "user_name",
         "simple": "path_a",
         "complex": "path_b",
         "executable": "command_executable",
@@ -130,6 +132,7 @@ def test_apply_args_to_step():
         name="step_name",
         description="A step named step_name",
         image="image_org/image_repo:image_tag",
+        user="user_name",
         volumes={
             "/host/path_a": "/container/path_a",
             "/host/path_b": {"bind": "/container/path_b", "mode": "rw"}
@@ -272,18 +275,21 @@ def test_apply_prototype_to_steps():
             description="A prototype description",
             environment={"prototype_env": "prototype", "common_env": "prototype"},
             volumes={"/prototype_dir": "/prototype", "/common_dir": "/prototype"},
-            image="image:prototype"
+            image="image:prototype",
+            user="user_name"
         ),
         steps=[
             Step(
                 name="step-a",
                 description="A step description-- a",
                 environment={"common_env": "step-a", "step_env": "step-a"},
-                image="image:step-a"
+                image="image:step-a",
+                user="user_name"
             ),
             Step(
                 name="step-b",
-                volumes={"/common_dir": "/step-b", "/step_dir": "/step-b"}
+                volumes={"/common_dir": "/step-b", "/step_dir": "/step-b"},
+                user="user_name"
             ),
         ]
     )
@@ -299,7 +305,8 @@ def test_apply_prototype_to_steps():
             description="A prototype description",
             environment={"prototype_env": "prototype", "common_env": "prototype"},
             volumes={"/prototype_dir": "/prototype", "/common_dir": "/prototype"},
-            image="image:prototype"
+            image="image:prototype",
+            user="user_name"
         ),
         steps=[
             Step(
@@ -307,14 +314,16 @@ def test_apply_prototype_to_steps():
                 description="A step description-- a",
                 environment={"prototype_env": "prototype", "common_env": "step-a", "step_env": "step-a"},
                 volumes={"/prototype_dir": "/prototype", "/common_dir": "/prototype"},
-                image="image:step-a"
+                image="image:step-a",
+                user="user_name"
             ),
             Step(
                 name="step-b",
                 description="A prototype description",
                 environment={"prototype_env": "prototype", "common_env": "prototype"},
                 volumes={"/prototype_dir": "/prototype", "/common_dir": "/step-b", "/step_dir": "/step-b"},
-                image="image:prototype"
+                image="image:prototype",
+                user="user_name"
             ),
         ]
     )
