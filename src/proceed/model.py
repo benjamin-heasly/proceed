@@ -223,36 +223,41 @@ class Step(YamlData):
     """
 
     user: str|int = None
-    """User to run as in the container, instead of container default (usually root).
+    """User (and group) to run as in the container, instead of container default (usually root).
 
     When :attr:`user` is omitted or ``None`` the container will run with the default user
-    specified in the image.  This is usually the root user, or sometimes an image-specific
-    user.
+    and group specified in the image.  This is usually root, or sometimes an image-specific
+    user and group.
 
-    When :attr:`user` is provided it must be a string user name or int user id, as follows:
+    When :attr:`user` is provided it must be a string user name or int uid, with group/gid optional,
+    as follows:
 
     host
-      The special user name ``host`` means run as the current user on the Docker host.
+      The special user name ``host`` means run as the current user and group, on the Docker host.
 
     existing
-      Other string user names must already exist inside the container/image.
+      Other string user names or group names must already exist inside the container/image.
+      This can be just a user name, like ``my-user``, or a user and group separated by a colon
+      ":", like ``my-user:my-group``
 
     id
       Int user ids can be any user id -- it's probably helpful if this uid exists on the host.
+      This can be just a uid, like ``1234``, or a uid and a gid separated by a colon ":", like
+      ``1234:5678``.
 
     .. code-block:: yaml
 
         steps:
           - name: default/root user example
         steps:
-          - name: host current user example
+          - name: host current user and group example
             user: host
         steps:
           - name: existing container user example
-            user: existing
+            user: my-user
         steps:
-          - name: int id user example
-            user: 1000
+          - name: int uid and gid example
+            user: 1234:5678
     """
 
     network_mode: str = None
