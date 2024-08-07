@@ -2,6 +2,7 @@ import logging
 from typing import Union, Any
 from datetime import datetime, timezone
 from pathlib import Path
+from os import getuid
 import docker
 from docker.models.containers import Container
 from docker.errors import DockerException, APIError
@@ -147,6 +148,11 @@ def run_container(
                 # This is roughly equivalent to the "--gpus" in "docker run --gpus ...".
                 device_requests.append(docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]]))
 
+            if step.user == "host":
+                container_user = getuid()
+            else:
+                container_user = step.user
+
             client = docker.from_env(**client_kwargs)
             container = client.containers.run(
                 step.image,
@@ -159,7 +165,8 @@ def run_container(
                 working_dir=step.working_dir,
                 auto_remove=False,
                 remove=False,
-                detach=True
+                detach=True,
+                user=container_user
             )
             logging.info(f"Container '{step.name}': waiting for process to complete.")
 

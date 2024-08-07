@@ -1,4 +1,4 @@
-from os import getcwd
+from os import getcwd, getuid
 from pathlib import Path
 import docker
 from pytest import fixture
@@ -163,6 +163,71 @@ def test_step_gpus(ubuntu_image, tmp_path):
         # This is the usual case when testing on laptops, CI, etc. where there's no GPU.
         assert not step_result.timing._is_complete()
         assert 'could not select device driver "" with capabilities: [[gpu]]' in read_step_logs(step_result)
+
+
+def test_step_default_user(alpine_image, tmp_path):
+    step = Step(
+        name="default user",
+        user=None,
+        image=alpine_image.tags[0],
+        command=["whoami"]
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+    assert step_result.exit_code == 0
+    assert "root" in read_step_logs(step_result)
+
+
+def test_step_host_user(alpine_image, tmp_path):
+    step = Step(
+        name="host user",
+        user="host",
+        image=alpine_image.tags[0],
+        command=["whoami"]
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+
+    # Expect whoami to return error status for unknown uid.
+    assert step_result.exit_code == 1
+
+    current_uid = getuid()
+    expected_message = f"unknown uid {current_uid}"
+    assert expected_message in read_step_logs(step_result)
+
+
+def test_step_existing_container_user(alpine_image, tmp_path):
+    step = Step(
+        name="existing container user",
+        user="guest",
+        image=alpine_image.tags[0],
+        command=["whoami"]
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+    assert step_result.exit_code == 0
+    assert "guest" in read_step_logs(step_result)
+
+
+def test_step_arbitrary_uid_user(alpine_image, tmp_path):
+    step = Step(
+        name="arbitrary uid user",
+        user=1234,
+        image=alpine_image.tags[0],
+        command=["whoami"]
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+
+    # Expect whoami to return error status for unknown uid.
+    assert step_result.exit_code == 1
+
+    expected_message = f"unknown uid 1234"
+    assert expected_message in read_step_logs(step_result)
 
 
 def test_step_files_done(alpine_image, fixture_path, tmp_path):

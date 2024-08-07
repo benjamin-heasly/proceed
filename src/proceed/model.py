@@ -222,6 +222,39 @@ class Step(YamlData):
             gpus: true
     """
 
+    user: str|int = None
+    """User to run as in the container, instead of container default (usually root).
+
+    When :attr:`user` is omitted or ``None`` the container will run with the default user
+    specified in the image.  This is usually the root user, or sometimes an image-specific
+    user.
+
+    When :attr:`user` is provided it must be a string user name or int user id, as follows:
+
+    host
+      The special user name ``host`` means run as the current user on the Docker host.
+
+    existing
+      Other string user names must already exist inside the container/image.
+
+    id
+      Int user ids can be any user id -- it's probably helpful if this uid exists on the host.
+
+    .. code-block:: yaml
+
+        steps:
+          - name: default/root user example
+        steps:
+          - name: host current user example
+            user: host
+        steps:
+          - name: existing container user example
+            user: existing
+        steps:
+          - name: int id user example
+            user: 1000
+    """
+
     network_mode: str = None
     """How to configure the container's network environment.
 
