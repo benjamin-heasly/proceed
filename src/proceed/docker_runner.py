@@ -154,9 +154,9 @@ def run_container(
                 container_user = step.user
 
             if container_user is None:
-                logging.info(f"Container '{step.name}': running as user {container_user}.")
-            else:
                 logging.info(f"Container '{step.name}': running as default user (might be root).")
+            else:
+                logging.info(f"Container '{step.name}': running as user {container_user}.")
 
             client = docker.from_env(**client_kwargs)
             container = client.containers.run(
