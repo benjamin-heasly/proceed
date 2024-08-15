@@ -3,6 +3,7 @@ from typing import Union, Any
 from datetime import datetime, timezone
 from pathlib import Path
 from os import getuid, getgid
+from grp import getgrnam
 import docker
 from docker.models.containers import Container
 from docker.errors import DockerException, APIError
@@ -133,6 +134,35 @@ def run_step(
     )
 
 
+def resolve_user(user: str) -> str:
+    """Figure out user and group to run as: by name on host or container, or integer ids."""
+    if user is None:
+        # Use the container default user and group.
+        return None
+
+    if user.startswith("self"):
+        # Special case invented by Proceed: current uid and/or gid on host.
+        uid = getuid()
+        parts = user.split(":")
+        if len(parts) > 1:
+            # Requesting a specific group or gid.
+            group = parts[1]
+            try:
+                # Look up group by name and take the host gid.
+                group_info = getgrnam(group)
+                gid = group_info.gr_gid
+            except:
+                # Assume this is a gid and us as-is.
+                gid = group
+        else:
+            # Use current gid.
+            gid = getgid()
+        return f"{uid}:{gid}"
+
+    # Use whatever user or user:group was provided as-is.
+    return user
+
+
 def run_container(
     step: Step,
     log_path: Path,
@@ -148,11 +178,7 @@ def run_container(
                 # This is roughly equivalent to the "--gpus" in "docker run --gpus ...".
                 device_requests.append(docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]]))
 
-            if step.user == "host":
-                container_user = f"{getuid()}:{getgid()}"
-            else:
-                container_user = step.user
-
+            container_user = resolve_user(step.user)
             if container_user is None:
                 logging.info(f"Container '{step.name}': running as default user (might be root).")
             else:

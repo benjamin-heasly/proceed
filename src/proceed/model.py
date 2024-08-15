@@ -232,18 +232,17 @@ class Step(YamlData):
     When :attr:`user` is provided it must be a string user name or int uid, with group/gid optional,
     as follows:
 
-    host
-      The special user name ``host`` means run as the current user and group, on the Docker host.
+    self or self:group
+      The special user name ``self`` means run with the uid of the current user on the Docker host.
+      Optionally, this can be followed by a group name or gid as in ``self:group``.
+      When this ``group`` is a string name it must exists on the Docker host and will be converted to a host gid.
 
-    existing
-      Other string user names or group names must already exist inside the container/image.
-      This can be just a user name, like ``my-user``, or a user and group separated by a colon
-      ":", like ``my-user:my-group``
+    user or user:group
+      Other string user names and group names are used as-is and must exist within the image / container.
 
-    id
-      Int user ids can be any user id -- it's probably helpful if this uid exists on the host.
-      This can be just a uid, like ``1234``, or a uid and a gid separated by a colon ":", like
-      ``1234:5678``.
+    uid or uid:gid
+      Integer uids and gids don't have to exist within the image / container.
+      It's proably helpful if they exist on the Docker host.
 
     .. code-block:: yaml
 
@@ -251,12 +250,12 @@ class Step(YamlData):
           - name: default/root user example
         steps:
           - name: host current user and group example
-            user: host
+            user: self
         steps:
           - name: existing container user example
-            user: my-user
+            user: container-user
         steps:
-          - name: int uid and gid example
+          - name: integer uid and gid example
             user: 1234:5678
     """
 

@@ -1,4 +1,5 @@
 from os import getcwd, getuid, getgid, listdir
+from grp import getgrgid
 from pathlib import Path
 import docker
 from pytest import fixture
@@ -180,10 +181,10 @@ def test_step_default_user(alpine_image, tmp_path):
     assert "gid=0(root)" in read_step_logs(step_result)
 
 
-def test_step_host_user(alpine_image, tmp_path):
+def test_step_self_user_and_group(alpine_image, tmp_path):
     step = Step(
-        name="host user",
-        user="host",
+        name="self user",
+        user="self",
         image=alpine_image.tags[0],
         command=["id"]
     )
@@ -194,6 +195,43 @@ def test_step_host_user(alpine_image, tmp_path):
 
     assert f"uid={getuid()}" in read_step_logs(step_result)
     assert f"gid={getgid()}" in read_step_logs(step_result)
+
+
+def test_step_self_user_with_host_group_name(alpine_image, tmp_path):
+    gid = getgid()
+    group_info = getgrgid(gid)
+    group = group_info.gr_name
+
+    step = Step(
+        name="self user with group name",
+        user=f"self:{group}",
+        image=alpine_image.tags[0],
+        command=["id"]
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+    assert step_result.exit_code == 0
+
+    assert f"uid={getuid()}" in read_step_logs(step_result)
+    assert f"gid={gid}" in read_step_logs(step_result)
+
+
+def test_step_self_user_with_gid(alpine_image, tmp_path):
+    gid = getgid()
+    step = Step(
+        name="self user with group name",
+        user=f"self:{gid}",
+        image=alpine_image.tags[0],
+        command=["id"]
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+    assert step_result.exit_code == 0
+
+    assert f"uid={getuid()}" in read_step_logs(step_result)
+    assert f"gid={gid}" in read_step_logs(step_result)
 
 
 def test_step_existing_container_user(alpine_image, tmp_path):
