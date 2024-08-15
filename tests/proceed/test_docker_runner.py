@@ -1,4 +1,4 @@
-from os import getcwd, getuid, getgid
+from os import getcwd, getuid, getgid, listdir
 from pathlib import Path
 import docker
 from pytest import fixture
@@ -561,3 +561,22 @@ def test_retry_on_unexpected_exception(alpine_image, tmp_path):
     assert "Container attempts/retries at 3 out of 3." in logs
     assert "TypeError" in logs
     assert "should not get this far!" not in logs
+
+
+def test_local_dir_as_volume(alpine_image, tmp_path):
+    # Bind the local dir with the "." shorthand on both host and container.
+    # This should result in the same absolute path in host and container.
+    # This is useful when we don't want to, or can't, deal with container path aliases.
+    local_dir = Path(".").absolute().as_posix()
+    step = Step(
+        name="local volume",
+        image=alpine_image.tags[0],
+        volumes={".": "."},
+        command=["ls", "-A", local_dir],
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.exit_code == 0
+    logs = read_step_logs(step_result)
+    container_entries = set(logs.split("\n")[:-1])
+    expected_entries = set(listdir())
+    assert container_entries == expected_entries

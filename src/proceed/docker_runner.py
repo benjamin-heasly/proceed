@@ -166,7 +166,7 @@ def run_container(
                 device_requests=device_requests,
                 network_mode=step.network_mode,
                 mac_address=step.mac_address,
-                volumes=volumes_to_absolute_host(volumes_to_dictionaries(step.volumes)),
+                volumes=normalize_volumes(step.volumes),
                 working_dir=step.working_dir,
                 auto_remove=False,
                 remove=False,
@@ -225,17 +225,19 @@ def run_container(
     return (None, -1, retried_exception)
 
 
-def volumes_to_dictionaries(volumes: dict[str, Union[str, dict[str, str]]],
-                            default_mode: str = "rw") -> dict[str, dict[str, str]]:
+def normalize_volumes(
+    volumes: dict[str, Union[str, dict[str, str]]],
+    default_mode: str = "rw"
+) -> dict[str, dict[str, str]]:
+    """Convert string paths to full dict form and make relative paths absolute."""
     normalized = {}
-    for k, v in volumes.items():
-        if isinstance(v, str):
-            normalized[k] = {"bind": v, "mode": default_mode}
+    for host_path, volume in volumes.items():
+        host_absolute = Path(host_path).absolute().as_posix()
+        if isinstance(volume, str):
+            bind_absolute = Path(volume).absolute().as_posix()
+            normalized[host_absolute] = {"bind": bind_absolute, "mode": default_mode}
         else:
-            normalized[k] = v
+            bind_absolute = Path(volume["bind"]).absolute().as_posix()
+            volume["bind"] = bind_absolute
+            normalized[host_absolute] = volume
     return normalized
-
-
-def volumes_to_absolute_host(volumes: dict[str, dict[str, str]]) -> dict[str, dict[str, str]]:
-    absolute = {Path(k).absolute().as_posix(): v for k, v in volumes.items()}
-    return absolute
