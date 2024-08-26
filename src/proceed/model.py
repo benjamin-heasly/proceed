@@ -208,11 +208,11 @@ class Step(YamlData):
               foo: bar
     """
 
-    gpus: bool = None
+    gpus: str|bool = None
     """Whether or not to request GPU device support.
 
-    When :attr:`gpus` is ``True``, request GPU device support similar to the
-    Docker run ``--gpus all``
+    When :attr:`gpus` is ``True`` / truthy, request GPU device support similar to the
+    Docker run ``--gpus all``.  Note: the empty string ``""`` will be treated as ``False``.
     `resource request <https://docs.docker.com/config/containers/resource_constraints/#gpu>`_.
 
     .. code-block:: yaml
