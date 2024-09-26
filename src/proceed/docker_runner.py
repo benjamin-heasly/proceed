@@ -184,6 +184,9 @@ def run_container(
             else:
                 logging.info(f"Container '{step.name}': running as user {container_user}.")
 
+            if step.privileged:
+                logging.warning(f"Container '{step.name}' running in privileged mode.  Please only use this for troubleshooting.")
+
             client = docker.from_env(**client_kwargs)
             container = client.containers.run(
                 step.image,
@@ -197,7 +200,9 @@ def run_container(
                 auto_remove=False,
                 remove=False,
                 detach=True,
-                user=container_user
+                user=container_user,
+                shm_size=step.shm_size,
+                privileged=step.privileged
             )
             logging.info(f"Container '{step.name}': waiting for process to complete.")
 

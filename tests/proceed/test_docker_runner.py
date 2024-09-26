@@ -265,6 +265,39 @@ def test_step_arbitrary_uid_gid_user(alpine_image, tmp_path):
     assert "gid=5678" in read_step_logs(step_result)
 
 
+def test_step_shm_size(alpine_image, tmp_path):
+    step = Step(
+        name="set shm size",
+        shm_size="124k",
+        image=alpine_image.tags[0],
+        command=["df", "-h"]
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+    assert step_result.exit_code == 0
+
+    assert "shm                     124.0K         0    124.0K   0% /dev/shm" in read_step_logs(step_result)
+
+
+def test_step_privileged(alpine_image, tmp_path):
+    step = Step(
+        name="elevated privileges",
+        privileged=True,
+        image=alpine_image.tags[0],
+        command=["ls", "/dev"]
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+    assert step_result.exit_code == 0
+
+    assert "bus" in read_step_logs(step_result)
+    assert "cpu" in read_step_logs(step_result)
+    assert "mem" in read_step_logs(step_result)
+    assert "net" in read_step_logs(step_result)
+
+
 def test_step_files_done(alpine_image, fixture_path, tmp_path):
     fixture_dir = fixture_path.as_posix()
     step = Step(

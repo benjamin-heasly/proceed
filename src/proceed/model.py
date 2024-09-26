@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Self, Union
 from string import Template
+
 from proceed.yaml_data import YamlData
 from proceed.__about__ import __version__ as proceed_version
 
@@ -208,7 +209,7 @@ class Step(YamlData):
               foo: bar
     """
 
-    gpus: str|bool = None
+    gpus: str | bool = None
     """Whether or not to request GPU device support.
 
     When :attr:`gpus` is ``True`` / truthy, request GPU device support similar to the
@@ -222,7 +223,7 @@ class Step(YamlData):
             gpus: true
     """
 
-    user: str|int = None
+    user: str | int = None
     """User (and group) to run as in the container, instead of container default (usually root).
 
     When :attr:`user` is omitted or ``None`` the container will run with the default user
@@ -291,6 +292,34 @@ class Step(YamlData):
             mac_address: aa:bb:cc:dd:ee:ff
     """
 
+    shm_size: str = None
+    """Max size of the ``/dev/shm`` shared memory in-memory-file-system.
+
+    Docker defaults ``/dev/shm`` to 64 megabytes.
+    Steps that need more can use :attr:`shm_size` to increase this limit.
+    Integer values will be treated as bytes, for example ``1000``.
+    Values with a unit suffix will use larger units, for example `10b`, `10k`, `10m`, or `10g`.
+
+    .. code-block:: yaml
+
+        steps:
+          - name: more-shm
+            shm_size: 2g
+    """
+
+    privileged: bool = False
+    """Whether the step's container should run with elevated privileges and device access.
+
+    This defaults to ``False``.
+    Please only set :attr:`privileged` to ``True`` temporarily, for troubleshooting!
+
+    .. code-block:: yaml
+
+        steps:
+          - name: elevated-privileged
+            privileged: True
+    """
+
     def _with_args_applied(self, args: dict[str, str]) -> Self:
         """Construct a new Step, the result of applying given args to string fields of this Step."""
         return Step(
@@ -308,7 +337,9 @@ class Step(YamlData):
             gpus=apply_args(self.gpus, args),
             network_mode=apply_args(self.network_mode, args),
             mac_address=apply_args(self.mac_address, args),
-            user=apply_args(self.user, args)
+            user=apply_args(self.user, args),
+            shm_size=apply_args(self.shm_size, args),
+            privileged=apply_args(self.privileged, args)
         )
 
     def _with_prototype_applied(self, prototype: Self) -> Self:
@@ -331,7 +362,9 @@ class Step(YamlData):
             gpus=self.gpus or prototype.gpus,
             network_mode=self.network_mode or prototype.network_mode,
             mac_address=self.mac_address or prototype.mac_address,
-            user=self.user or prototype.user
+            user=self.user or prototype.user,
+            shm_size=self.shm_size or prototype.shm_size,
+            privileged=self.privileged or prototype.privileged
         )
 
 
