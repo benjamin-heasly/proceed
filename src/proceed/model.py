@@ -320,6 +320,41 @@ class Step(YamlData):
             privileged: True
     """
 
+    X11: bool = False
+    """Whether to set up the container as an X11 client app with ``DISPLAY`` access.
+
+    This defaults to ``False``, assuming most steps are noninteractive.
+    Set :attr:`X11` to ``True`` to set up the container as an X11 GUI client app with ``DISPLAY`` access.
+    This will modify the container environment in a few ways:
+
+    ``DISPLAY``
+    Proceed will set the ``DISPLAY`` environment variable in the step container to match the host environment.
+
+    ``/tmp/.X11-unix``
+    If the ``/tmp/.X11-unix`` directory exists on the host Proceed will add this to the step's :attr:`Step.volumes`.
+    This lets the step container access local Unix sockets for connecting to a local X server.
+
+    :attr:`Step.network_mode` ``host``
+    Proceed will set the step's network mode to ``host``.
+    This lets the step container access TCP sockets for connecting to a remote/proxied X server as with `ssh -X` or `ssh -Y`.
+
+    ``XAUTHORITY``
+    Proceed will set up the ``XAUTHORITY`` environment variable and ``.Xauthority`` cookie file based on the host environment.
+    If the ``XAUTHORITY`` variable is set in the host environment Proceed will use this file path to locate the cookie file.
+    Otherwise Proceed will use the default cookie file path which is the current host user's ``$HOME/.Xauthority``.
+    If the cookie file exists on the host Proceed will add it to the step's :attr:`Step.volumes`.
+    Proceed will bind the cookie file to a fixed, known path in the container like ``/var/.Xauthority``.
+    Proceed will also set the ``XAUTHORITY`` environment variable in the container the same known path.
+    Using a fixed path for the cookie file should avoid any dependency on the container user or HOME configuration (or lack thereof).
+    All of this lets the step container authenticate with a remote/proxied X server as with `ssh -X` or `ssh -Y`.
+
+    .. code-block:: yaml
+
+        steps:
+          - name: x11-gui-client
+            X11: True
+    """
+
     def _with_args_applied(self, args: dict[str, str]) -> Self:
         """Construct a new Step, the result of applying given args to string fields of this Step."""
         return Step(
@@ -339,7 +374,8 @@ class Step(YamlData):
             mac_address=apply_args(self.mac_address, args),
             user=apply_args(self.user, args),
             shm_size=apply_args(self.shm_size, args),
-            privileged=apply_args(self.privileged, args)
+            privileged=apply_args(self.privileged, args),
+            X11=apply_args(self.X11, args)
         )
 
     def _with_prototype_applied(self, prototype: Self) -> Self:
@@ -364,7 +400,8 @@ class Step(YamlData):
             mac_address=self.mac_address or prototype.mac_address,
             user=self.user or prototype.user,
             shm_size=self.shm_size or prototype.shm_size,
-            privileged=self.privileged or prototype.privileged
+            privileged=self.privileged or prototype.privileged,
+            X11=self.X11 or prototype.X11
         )
 
 

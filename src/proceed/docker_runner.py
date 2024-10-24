@@ -2,7 +2,7 @@ import logging
 from typing import Union, Any
 from datetime import datetime, timezone
 from pathlib import Path
-from os import getuid, getgid
+from os import getuid, getgid, environ
 from grp import getgrnam
 import docker
 from docker.models.containers import Container
@@ -59,6 +59,47 @@ def run_pipeline(
     )
 
 
+def apply_step_X11(
+    step: Step,
+) -> Step:
+    """Set up the step as an X11 gui client with DISPLAY access.
+
+    This is implemented here in the docker_runner and not in the model
+    because the intended behavior depends on the runtime system and environment.
+    """
+
+    if not step.X11:
+        return
+
+    if "DISPLAY" not in step.environment:
+        display = environ.get("DISPLAY")
+        logging.info(f"Step '{step.name}': using X11 DISPLAY: {display}")
+        step.environment["DISPLAY"] = display
+
+    local_socket_dir = Path("/tmp/.X11-unix").as_posix()
+    if local_socket_dir not in step.volumes:
+        logging.info(f"Step '{step.name}': using X11 local socket dir: {local_socket_dir}")
+        step.volumes[local_socket_dir] = local_socket_dir
+
+    if step.network_mode is None:
+        logging.info(f"Step '{step.name}': using network_mode host for X11 support")
+        step.network_mode = "host"
+
+    default_xauthority = Path("~", ".Xauthority").as_posix()
+    xauthority = environ.get("XAUTHORITY", default_xauthority)
+    xauthorith_path = Path(xauthority)
+    if xauthorith_path.exists():
+        xauthority_host = xauthorith_path.expanduser().absolute().as_posix()
+        xauthority_container = "/var/.Xauthority"
+        if xauthority_host not in step.volumes:
+            step.volumes[xauthority_host] = xauthority_container
+
+        if "XAUTHORITY" not in step.environment:
+            step.environment["XAUTHORITY"] = xauthority_container
+
+    return step
+
+
 def run_step(
     step: Step,
     log_path: Path,
@@ -66,6 +107,8 @@ def run_step(
     client_kwargs: dict[str, Any] = {}
 ) -> StepResult:
     logging.info(f"Step '{step.name}': starting.")
+
+    apply_step_X11(step)
 
     start = datetime.now(timezone.utc)
 

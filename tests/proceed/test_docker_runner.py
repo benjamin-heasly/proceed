@@ -1,4 +1,4 @@
-from os import getcwd, getuid, getgid, listdir
+from os import getcwd, getuid, getgid, listdir, environ
 from grp import getgrgid
 from getpass import getuser
 from pathlib import Path
@@ -671,3 +671,141 @@ def test_create_volume_as_host_user(alpine_image, tmp_path):
     assert new_path.exists()
     assert new_path.is_dir()
     assert new_path.owner() == getuser()
+
+
+def test_X11_display_env(alpine_image, tmp_path):
+    # Set up a phony DISPLAY value on the host.
+    # The same DISPLAY should then be set in the container.
+    environ["DISPLAY"] = ":42"
+    step = Step(
+        name="set up X11 DISPLAY",
+        image=alpine_image.tags[0],
+        command=["env"],
+        X11=True
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.exit_code == 0
+    logs = read_step_logs(step_result)
+    assert "DISPLAY=:42" in logs
+
+
+def test_X11_local_socket_dir(alpine_image, tmp_path):
+    # Ensure /tmp/.X11-unix exists on the host.
+    # This should then exist in the container at the same path.
+    local_socket_path = Path("/tmp/.X11-unix")
+    local_socket_path.mkdir(parents=True, exist_ok=True)
+    step = Step(
+        name="set up X11 local socket dir",
+        image=alpine_image.tags[0],
+        command=["ls", "/tmp/.X11-unix"],
+        X11=True
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.exit_code == 0
+
+
+def test_X11_xauthority_file(alpine_image, tmp_path):
+    # Set up a phony .Xauthority cookie file on the host.
+    # This should then exist in the container at a fixed path, /var/.Xauthority.
+    xauthority_tmp = Path(tmp_path, "test", ".XAuthority")
+    xauthority_tmp.mkdir(parents=True, exist_ok=True)
+    xauthority_tmp.touch()
+    environ["XAUTHORITY"] = xauthority_tmp.as_posix()
+    step = Step(
+        name="set up X11 .Xauthority file",
+        image=alpine_image.tags[0],
+        command=["ls", "/var/.Xauthority"],
+        X11=True
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.exit_code == 0
+
+
+def test_X11_xauthority_env(alpine_image, tmp_path):
+    # Set up a phony .Xauthority cookie file on the host.
+    # XAUTHORITY in the container should point this at a fixed path, /var/.Xauthority.
+    xauthority_tmp = Path(tmp_path, "test", ".XAuthority")
+    xauthority_tmp.mkdir(parents=True, exist_ok=True)
+    xauthority_tmp.touch()
+    environ["XAUTHORITY"] = xauthority_tmp.as_posix()
+    step = Step(
+        name="set up X11 XAUTHORITY",
+        image=alpine_image.tags[0],
+        command=["env"],
+        X11=True
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.exit_code == 0
+    logs = read_step_logs(step_result)
+    assert "XAUTHORITY=/var/.Xauthority" in logs
+
+
+def test_pipeline_with_X11(alpine_image, tmp_path):
+    # Ensure /tmp/.X11-unix exists on the host.
+    # This should then exist in the container at the same path.
+    local_socket_path = Path("/tmp/.X11-unix")
+    local_socket_path.mkdir(parents=True, exist_ok=True)
+
+    # Set up a phony DISPLAY value on the host.
+    # The same DISPLAY should then be set in the container.
+    environ["DISPLAY"] = ":42"
+
+    # Set up a phony .Xauthority cookie file on the host.
+    # XAUTHORITY in the container should point this at a fixed path, /var/.Xauthority.
+    xauthority_tmp = Path(tmp_path, "test", ".XAuthority")
+    xauthority_tmp.mkdir(parents=True, exist_ok=True)
+    xauthority_tmp.touch()
+    xauthority_host = xauthority_tmp.as_posix()
+    environ["XAUTHORITY"] = xauthority_host
+
+    pipeline = Pipeline(
+        steps=[
+            Step(
+                name="step 1",
+                image=alpine_image.tags[0],
+                command=["env"],
+                X11=True
+            ),
+            Step(
+                name="step 2",
+                image=alpine_image.tags[0],
+                command=["env"],
+                X11=False
+            )
+        ]
+    )
+    pipeline_result = run_pipeline(pipeline, tmp_path)
+    expected_step_results = [
+        StepResult(name="step 1", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_1.log").as_posix()),
+        StepResult(name="step 2", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_2.log").as_posix())
+    ]
+    assert pipeline_result.original == pipeline
+    assert pipeline_result.step_results == expected_step_results
+    assert pipeline_result.timing._is_complete()
+    assert all([step_result.timing._is_complete() for step_result in pipeline_result.step_results])
+
+    step_1_logs = read_step_logs(pipeline_result.step_results[0])
+    assert "DISPLAY=:42" in step_1_logs
+    assert "XAUTHORITY=/var/.Xauthority" in step_1_logs
+
+    step_2_logs = read_step_logs(pipeline_result.step_results[1])
+    assert "DISPLAY=:42" not in step_2_logs
+    assert "XAUTHORITY=/var/.Xauthority" not in step_2_logs
+
+    # Step 1 with X11 should have several properties set up as a convenience.
+    step_1_amended = pipeline_result.amended.steps[0]
+    assert step_1_amended.X11 == True
+    assert step_1_amended.environment["DISPLAY"] == ":42"
+    assert step_1_amended.environment["XAUTHORITY"] == "/var/.Xauthority"
+    assert step_1_amended.volumes[xauthority_host] == "/var/.Xauthority"
+    assert step_1_amended.volumes["/tmp/.X11-unix"] == "/tmp/.X11-unix"
+    assert step_1_amended.network_mode == "host"
+
+    # Step 2 without X11 should not have these set.
+    step_2_amended = pipeline_result.amended.steps[1]
+    assert step_2_amended.X11 == False
+    assert "DISPLAY" not in step_2_amended.environment
+    assert "XAUTHORITY" not in step_2_amended.environment
+    assert xauthority_host not in step_2_amended.volumes
+    assert "/tmp/.X11-unix" not in step_2_amended.volumes
+    assert step_2_amended.network_mode is None
