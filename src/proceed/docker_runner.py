@@ -69,7 +69,15 @@ def run_step(
 
     start = datetime.now(timezone.utc)
 
+    # Create volume dirs on the host as the current user.
+    # This is nicer than having dockerd create them as root!
     volume_dirs = step.volumes.keys()
+    for volume_dir in volume_dirs:
+        volume_path = Path(volume_dir)
+        if not volume_path.exists():
+            logging.info(f"Step '{step.name}': creating host directory: {volume_path}")
+            volume_path.mkdir(parents=True, exist_ok=True)
+
     files_done = match_patterns_in_dirs(volume_dirs, step.match_done)
     if files_done:
         logging.info(f"Step '{step.name}': found {count_matches(files_done)} done files.")

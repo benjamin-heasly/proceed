@@ -1,8 +1,11 @@
 from os import getcwd, getuid, getgid, listdir
 from grp import getgrgid
+from getpass import getuser
 from pathlib import Path
 import docker
+
 from pytest import fixture
+
 from proceed.model import Pipeline, ExecutionRecord, Step, StepResult
 from proceed.docker_runner import run_pipeline, run_step
 
@@ -651,3 +654,20 @@ def test_local_dir_as_volume(alpine_image, tmp_path):
     container_entries = set(logs.split("\n")[:-1])
     expected_entries = set(listdir())
     assert container_entries == expected_entries
+
+
+def test_create_volume_as_host_user(alpine_image, tmp_path):
+    new_path = Path(tmp_path, "parent_dir", "new_dir")
+    new_dir = new_path.absolute().as_posix()
+    step = Step(
+        name="create volume dir as host user",
+        image=alpine_image.tags[0],
+        volumes={new_dir: new_dir},
+        command=["ls", new_dir],
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.exit_code == 0
+
+    assert new_path.exists()
+    assert new_path.is_dir()
+    assert new_path.owner() == getuser()
