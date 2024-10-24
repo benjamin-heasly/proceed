@@ -344,7 +344,7 @@ class Step(YamlData):
       Otherwise Proceed will use the default cookie file path which is the current host user's ``$HOME/.Xauthority``.
       If the cookie file exists on the host Proceed will add it to the step's :attr:`Step.volumes`.
       Proceed will bind the cookie file to a fixed, known path in the container like ``/var/.Xauthority``.
-      Proceed will also set the ``XAUTHORITY`` environment variable in the container the same known path.
+      Proceed will set the ``XAUTHORITY`` environment variable in the container to the same known path.
       Using a fixed path for the cookie file should avoid any dependency on the container user or HOME configuration (or lack thereof).
       All of this lets the step container authenticate with a remote/proxied X server as with `ssh -X` or `ssh -Y`.
 
