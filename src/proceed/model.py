@@ -97,10 +97,10 @@ class Step(YamlData):
     The detailed style lets you specify the container path to bind as well as the read/write permissions.
 
     bind
-        the container absolute path to bind (where the host dir will show up inside the container)
+      the container absolute path to bind (where the host dir will show up inside the container)
 
     mode
-        the read/write permission to give the container: ``rw`` for read plus write (the default), ``ro`` for read only
+      the read/write permission to give the container: ``rw`` for read plus write (the default), ``ro`` for read only
     """
 
     working_dir: str = None
@@ -328,25 +328,25 @@ class Step(YamlData):
     This will modify the container environment in a few ways:
 
     ``DISPLAY``
-    Proceed will set the ``DISPLAY`` environment variable in the step container to match the host environment.
+      Proceed will set the ``DISPLAY`` environment variable in the step container to match the host environment.
 
     ``/tmp/.X11-unix``
-    If the ``/tmp/.X11-unix`` directory exists on the host Proceed will add this to the step's :attr:`Step.volumes`.
-    This lets the step container access local Unix sockets for connecting to a local X server.
+      If the ``/tmp/.X11-unix`` directory exists on the host Proceed will add this to the step's :attr:`Step.volumes`.
+      This lets the step container access local Unix sockets for connecting to a local X server.
 
     :attr:`Step.network_mode` ``host``
-    Proceed will set the step's network mode to ``host``.
-    This lets the step container access TCP sockets for connecting to a remote/proxied X server as with `ssh -X` or `ssh -Y`.
+      Proceed will set the step's network mode to ``host``.
+      This lets the step container access TCP sockets for connecting to a remote/proxied X server as with `ssh -X` or `ssh -Y`.
 
     ``XAUTHORITY``
-    Proceed will set up the ``XAUTHORITY`` environment variable and ``.Xauthority`` cookie file based on the host environment.
-    If the ``XAUTHORITY`` variable is set in the host environment Proceed will use this file path to locate the cookie file.
-    Otherwise Proceed will use the default cookie file path which is the current host user's ``$HOME/.Xauthority``.
-    If the cookie file exists on the host Proceed will add it to the step's :attr:`Step.volumes`.
-    Proceed will bind the cookie file to a fixed, known path in the container like ``/var/.Xauthority``.
-    Proceed will also set the ``XAUTHORITY`` environment variable in the container the same known path.
-    Using a fixed path for the cookie file should avoid any dependency on the container user or HOME configuration (or lack thereof).
-    All of this lets the step container authenticate with a remote/proxied X server as with `ssh -X` or `ssh -Y`.
+      Proceed will set up the ``XAUTHORITY`` environment variable and ``.Xauthority`` cookie file based on the host environment.
+      If the ``XAUTHORITY`` variable is set in the host environment Proceed will use this file path to locate the cookie file.
+      Otherwise Proceed will use the default cookie file path which is the current host user's ``$HOME/.Xauthority``.
+      If the cookie file exists on the host Proceed will add it to the step's :attr:`Step.volumes`.
+      Proceed will bind the cookie file to a fixed, known path in the container like ``/var/.Xauthority``.
+      Proceed will also set the ``XAUTHORITY`` environment variable in the container the same known path.
+      Using a fixed path for the cookie file should avoid any dependency on the container user or HOME configuration (or lack thereof).
+      All of this lets the step container authenticate with a remote/proxied X server as with `ssh -X` or `ssh -Y`.
 
     .. code-block:: yaml
 
