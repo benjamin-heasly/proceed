@@ -40,4 +40,4 @@ jobs:
     - name: Build and publish to PyPi
       run: |
         hatch build
-        hatch publish --repo https://test.pypi.org/legacy/ --user __token__ --auth ${{ secrets.TEST_PYPI_TOKEN }}
+        hatch publish --user __token__ --auth ${{ secrets.PYPI_TOKEN }}
