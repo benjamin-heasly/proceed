@@ -19,11 +19,11 @@ Proceed requires [Python](https://www.python.org/) and [Docker](https://www.dock
 With those, it should be able to run a wide variety pipelines and steps via containers.
 
 ## pip
-Proceed itself is not yet available on [PyPI](https://pypi.org/).
-When it is, this will be the recommended way to install Proceed:
+Proceed itself is available on [PyPI](https://pypi.org/project/proceed/).
+This is the recommended way to install Proceed:
 
 ```
-$ pip install proceed # TODO
+$ pip install proceed
 ```
 
 ## git and pip

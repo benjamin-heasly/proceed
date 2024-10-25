@@ -7,12 +7,12 @@ With those, it should be able to run a wide variety pipelines and steps via cont
 pip
 ---
 
-Proceed itself is not yet available on `PyPI <https://pypi.org/>`_.
-When it is, this will be the recommended way to install Proceed:
+Proceed itself is available on `PyPI <https://pypi.org/project/proceed/>`_.
+This is the recommended way to install Proceed:
 
 .. code-block:: console
 
-  $ pip install proceed # TODO
+  $ pip install proceed
 
 git and pip
 -----------
