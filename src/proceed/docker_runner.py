@@ -87,14 +87,19 @@ def apply_step_X11(
 
     default_xauthority = Path("~", ".Xauthority").as_posix()
     xauthority = environ.get("XAUTHORITY", default_xauthority)
-    xauthorith_path = Path(xauthority)
+    xauthorith_path = Path(xauthority).expanduser().absolute()
+    logging.info(f"Step '{step.name}': looking for .Xauthority cookie file at {xauthority} AKA {xauthorith_path}")
     if xauthorith_path.exists():
-        xauthority_host = xauthorith_path.expanduser().absolute().as_posix()
+        xauthority_host = xauthorith_path.as_posix()
+        logging.info(f"Step '{step.name}': found .Xauthority cookie file on host at {xauthority_host}")
+
         xauthority_container = "/var/.Xauthority"
         if xauthority_host not in step.volumes:
+            logging.info(f"Step '{step.name}': adding .Xauthority cookie file to container at {xauthority_container}")
             step.volumes[xauthority_host] = xauthority_container
 
         if "XAUTHORITY" not in step.environment:
+            logging.info(f"Step '{step.name}': setting XAUTHORITY env var in container to {xauthority_container}")
             step.environment["XAUTHORITY"] = xauthority_container
 
     return step

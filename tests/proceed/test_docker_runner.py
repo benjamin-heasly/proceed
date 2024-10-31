@@ -2,6 +2,7 @@ from os import getcwd, getuid, getgid, listdir, environ
 from grp import getgrgid
 from getpass import getuser
 from pathlib import Path
+from shutil import rmtree
 import docker
 
 from pytest import fixture
@@ -718,6 +719,28 @@ def test_X11_xauthority_file(alpine_image, tmp_path):
         X11=True
     )
     step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.exit_code == 0
+
+
+def test_X11_xauthority_file_expanduser(alpine_image, tmp_path):
+    # Set up a phony .Xauthority cookie file on the host within the user's home dir.
+    user_test_dir = Path("~", "proceed_test").expanduser()
+    user_test_dir.mkdir(parents=True, exist_ok=True)
+    xauthority_user = Path(user_test_dir, ".XAuthority")
+    xauthority_user.touch()
+
+    # Set this in the environment using the ~ placeholder for the user's home dir.
+    environ["XAUTHORITY"] = Path("~", "proceed_test", ".XAuthority").as_posix()
+
+    # This should then exist in the container at a fixed path, /var/.Xauthority.
+    step = Step(
+        name="set up X11 .Xauthority file in the user home dir",
+        image=alpine_image.tags[0],
+        command=["ls", "/var/.Xauthority"],
+        X11=True
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    rmtree(user_test_dir)
     assert step_result.exit_code == 0
 
 
