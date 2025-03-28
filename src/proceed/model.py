@@ -456,6 +456,25 @@ class StepResult(YamlData):
     timing: Timing = field(compare=False, default=None)
     """Start datetime, finish datetime, and duration for the step's container process."""
 
+    progress_file: str = None
+    """File to create when the step starts, and rename with ``.done`` when the step succeeds.
+
+    This is an optional marker file that Proceed can use to indicate progress through the step
+    and to decide whether step is already complete and can be skipped.
+
+    :attr:`Step.progress_file` should be a file path on the host -- unline :attr:`Step.files_done`,
+    :attr:`Step.files_in`, and :attr:`Step.files_out`, which are patterns to match within
+    :attr:`Step.volumes`.
+
+    Proceed will create :attr:`Step.progress_file` when starting to execute a step.  If the
+    step completes with an error, Proceed will append an error message to the progress file.
+    If the step completes without error, Proceed will append a success message to the file
+    and rename the file, adding the suffix, ``.done``.
+
+    When :attr:`Step.progress_file`-with-the-``.done``-suffix exists, the step is considered
+    to be already complete before running, and :attr:`skipped` should be ``True``.
+    """
+
     files_done: dict[str, dict[str, str]] = field(default_factory=dict)
     """Files that matched the :attr:`Step.match_done` pattern.
 

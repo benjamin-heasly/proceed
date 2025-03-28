@@ -126,6 +126,9 @@ def run_step(
             logging.info(f"Step '{step.name}': creating host directory: {volume_path}")
             volume_path.mkdir(parents=True, exist_ok=True)
 
+    # TODO: check for {progress_file}.done
+    # logging.info(f"Step '{step.name}': skipping execution because {progress_file}.done found.")
+
     files_done = match_patterns_in_dirs(volume_dirs, step.match_done)
     if files_done:
         logging.info(f"Step '{step.name}': found {count_matches(files_done)} done files.")
@@ -141,9 +144,12 @@ def run_step(
                 timing=Timing(start.isoformat(sep="T"))
             )
 
+    # TODO: create or truncate progress_file
+
     files_in = match_patterns_in_dirs(volume_dirs, step.match_in)
     logging.info(f"Step '{step.name}': found {count_matches(files_in)} input files.")
 
+    # TODO: append "starting container" to progress_file
     (container, exit_code, exception) = run_container(step, log_path, client_kwargs)
 
     if exception is not None:
@@ -156,6 +162,8 @@ def run_step(
 
         with open(log_path, 'a') as f:
             f.write(error_message)
+
+        # TODO: append error message to progress_file
 
         logging.error(f"Step '{step.name}': error (see stack trace above) {error_message}")
         return StepResult(
@@ -175,8 +183,10 @@ def run_step(
     finish = datetime.now(timezone.utc)
     duration = finish - start
 
-    logging.info(f"Step '{step.name}': finished.")
+    # TODO: append success message to progress_file
+    # TODO: rename progress_file to {progress_file}.done
 
+    logging.info(f"Step '{step.name}': finished.")
     return StepResult(
         name=step.name,
         image_id=container.image.id,
