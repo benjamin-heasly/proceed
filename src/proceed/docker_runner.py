@@ -7,17 +7,19 @@ from grp import getgrnam
 import docker
 from docker.models.containers import Container
 from docker.errors import DockerException, APIError
+from proceed.run_recorder import RunRecorder
 from proceed.model import Pipeline, ExecutionRecord, Step, StepResult, Timing
 from proceed.file_matching import count_matches, match_patterns_in_dirs
 
 
 def run_pipeline(
-        original: Pipeline,
-        execution_path: Path,
-        args: dict[str, str] = {},
-        force_rerun: bool = False,
-        step_names: list[str] = None,
-        client_kwargs: dict[str, Any] = {}
+    original: Pipeline,
+    execution_path: Path,
+    run_recorder: RunRecorder,
+    args: dict[str, str] = {},
+    force_rerun: bool = False,
+    step_names: list[str] = None,
+    client_kwargs: dict[str, Any] = {}
 ) -> ExecutionRecord:
     """
     Run steps of a pipeline and return results.
@@ -30,33 +32,61 @@ def run_pipeline(
     logging.info("Starting pipeline run.")
 
     start = datetime.now(timezone.utc)
+    start_iso = start.isoformat(sep="T")
 
     amended = original._with_args_applied(args)._with_prototype_applied()
     step_results = []
-    for step in amended.steps:
-        if step_names and not step.name in step_names:
-            logging.info(f"Ignoring step '{step.name}', not in list of steps to run: {step_names}")
-            continue
+    try:
+        for step in amended.steps:
+            if step_names and not step.name in step_names:
+                logging.info(f"Ignoring step '{step.name}', not in list of steps to run: {step_names}")
+                continue
 
-        log_stem = step.name.replace(" ", "_")
-        log_path = Path(execution_path, f"{log_stem}.log")
-        step_result = run_step(step, log_path, force_rerun, client_kwargs)
-        step_results.append(step_result)
-        if step_result.exit_code:
-            logging.error("Stopping pipeline run after error.")
-            break
+            # Choose the log file for this step.
+            log_stem = step.name.replace(" ", "_")
+            log_path = Path(execution_path, f"{log_stem}.log")
 
-    finish = datetime.now(timezone.utc)
-    duration = finish - start
+            # Write out the execution so far, including previous steps and a placeholder for this step.
+            # This way, if we interrupt the runner or crash horribly, we still have a partial execution record.
+            partial_result = StepResult(
+                name=step.name,
+                log_file=log_path.as_posix(),
+                timing=Timing(start_iso)
+            )
+            step_results.append(partial_result)
+            partial_record = ExecutionRecord(
+                original=original,
+                amended=amended,
+                step_results=step_results,
+                timing=Timing(start_iso)
+            )
+            run_recorder.write(partial_record)
 
-    logging.info("Finished pipeline run.")
+            # Run this step and update the results with a complete step record.
+            step_result = run_step(step, log_path, force_rerun, client_kwargs)
+            step_results[-1] = step_result
 
-    return ExecutionRecord(
-        original=original,
-        amended=amended,
-        step_results=step_results,
-        timing=Timing(start.isoformat(sep="T"), finish.isoformat(sep="T"), duration.total_seconds())
-    )
+            if step_result.exit_code:
+                logging.error("Stopping pipeline run after error.")
+                break
+
+    finally:
+        finish = datetime.now(timezone.utc)
+        finish_iso = finish.isoformat(sep="T")
+        duration = finish - start
+
+        logging.info("Finished pipeline run.")
+
+        # Write out a complete execution record.
+        execution_record = ExecutionRecord(
+            original=original,
+            amended=amended,
+            step_results=step_results,
+            timing=Timing(start_iso, finish_iso, duration.total_seconds())
+        )
+        run_recorder.write(execution_record)
+
+    return execution_record
 
 
 def apply_step_X11(
@@ -140,7 +170,7 @@ def run_step(
                     skipped=True,
                     progress_done_file=progress_done_file.as_posix(),
                     timing=Timing(start_iso)
-            )
+                )
 
     files_done = match_patterns_in_dirs(volume_dirs, step.match_done)
     if files_done:
@@ -278,7 +308,7 @@ def run_container(
                 logging.info(f"Container '{step.name}': running as user {container_user}.")
 
             if step.privileged:
-                logging.warning(f"Container '{step.name}' running in privileged mode.  Please only use this for troubleshooting.")
+                logging.warning(f"Container '{step.name}' using privileged mode.  Only use this for troubleshooting!")
 
             client = docker.from_env(**client_kwargs)
             container = client.containers.run(

@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 from typing import Optional, Sequence
 from proceed.model import Pipeline
 from proceed.config_options import ConfigOptions, resolve_config_options
+from proceed.run_recorder import RunRecorder
 from proceed.docker_runner import run_pipeline
 from proceed.aggregator import summarize_results
 from proceed.__about__ import __version__ as proceed_version
@@ -70,21 +71,16 @@ def run(spec: str, config_options: ConfigOptions) -> int:
     with open(spec) as f:
         pipeline = Pipeline.from_yaml(f.read())
 
+    run_recorder = RunRecorder(execution_path, config_options=config_options)
+
     logging.info(f"Running pipeline with args: {config_options.args.value}")
     pipeline_result = run_pipeline(
         original=pipeline,
         execution_path=execution_path,
+        run_recorder=run_recorder,
         args=config_options.args.value,
         force_rerun=config_options.force_rerun.value,
         step_names=config_options.step_names.value)
-
-    record_path = Path(execution_path, "execution_record.yaml")
-    logging.info(f"Writing execution record to: {record_path}")
-    with open(record_path, "w") as record:
-        record.write(pipeline_result.to_yaml(
-            skip_empty=config_options.yaml_skip_empty.value,
-            dump_args=config_options.yaml_options.value
-        ))
 
     error_count = sum((not not step_result.exit_code) for step_result in pipeline_result.step_results)
     if error_count:

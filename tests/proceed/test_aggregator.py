@@ -2,6 +2,7 @@ from math import isnan
 from pathlib import Path
 from pytest import fixture
 from proceed.model import Pipeline
+from proceed.run_recorder import RunRecorder
 from proceed.docker_runner import run_pipeline
 from proceed.aggregator import summarize_results, collect_custom_columns
 
@@ -35,7 +36,8 @@ def run(pipeline: Pipeline,
         args: dict[str, str] = {}) -> Path:
     execution_path = Path(results_dir, results_group, results_id)
     execution_path.mkdir(parents=True, exist_ok=True)
-    execution_record = run_pipeline(pipeline, execution_path, args)
+    run_recorder = RunRecorder(execution_path)
+    execution_record = run_pipeline(pipeline, execution_path, run_recorder, args)
     out_path = Path(execution_path, "execution_record.yaml")
 
     with open(out_path, "w") as f:

@@ -8,6 +8,7 @@ import docker
 from pytest import fixture
 
 from proceed.model import Pipeline, ExecutionRecord, Step, StepResult
+from proceed.run_recorder import RunRecorder
 from proceed.docker_runner import run_pipeline, run_step
 
 
@@ -72,6 +73,13 @@ def test_step_command_success(alpine_image, tmp_path):
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
     assert "hello to you" in read_step_logs(step_result)
+
+
+def test_step_command_interrupt(alpine_image, tmp_path):
+    step = Step(name="command interrupt", image=alpine_image.tags[0], command=["/bin/sh", "-c", "kill -INT $$"])
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.name == step.name
+    assert step_result.exit_code == 130
 
 
 def test_step_working_dir(alpine_image, tmp_path):
@@ -383,7 +391,7 @@ def test_step_progress_file_force_rerun(alpine_image, tmp_path):
     step_result = run_step(step, Path(tmp_path, "step.log"), force_rerun=True)
     assert step_result.name == step.name
     assert not step_result.skipped
-    assert step_result.exit_code is 0
+    assert step_result.exit_code == 0
     assert step_result.progress_done_file is None
 
     assert not progress_file.exists()
@@ -549,7 +557,8 @@ def test_pipeline_with_args(alpine_image, tmp_path):
         "ignored": "ignore me",
         "arg_1": "quux"
     }
-    pipeline_result = run_pipeline(pipeline, tmp_path, args)
+    run_recorder = RunRecorder(tmp_path)
+    pipeline_result = run_pipeline(pipeline, tmp_path, run_recorder, args)
     expected_amended = Pipeline(
         args={
             "arg_1": "quux",
@@ -603,7 +612,8 @@ def test_pipeline_with_environment(alpine_image, tmp_path):
             )
         ]
     )
-    pipeline_result = run_pipeline(pipeline, tmp_path)
+    run_recorder = RunRecorder(tmp_path)
+    pipeline_result = run_pipeline(pipeline, tmp_path, run_recorder)
     expected_step_results = [
         StepResult(name="step 1", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_1.log").as_posix()),
         StepResult(name="step 2", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_2.log").as_posix())
@@ -642,7 +652,8 @@ def test_pipeline_with_network_config(alpine_image, tmp_path):
             )
         ]
     )
-    pipeline_result = run_pipeline(pipeline, tmp_path)
+    run_recorder = RunRecorder(tmp_path)
+    pipeline_result = run_pipeline(pipeline, tmp_path, run_recorder)
 
     # First step should override the pipeline's network config.
     assert pipeline_result.step_results[0].name == pipeline.steps[0].name
@@ -668,25 +679,26 @@ def test_pipeline_steps_to_run(alpine_image, tmp_path):
         ]
     )
 
-    default_run_all = run_pipeline(pipeline, tmp_path)
+    run_recorder = RunRecorder(tmp_path)
+    default_run_all = run_pipeline(pipeline, tmp_path, run_recorder)
     assert len(default_run_all.step_results) == 3
     assert default_run_all.step_results[0].name == "step 1"
     assert default_run_all.step_results[1].name == "step 2"
     assert default_run_all.step_results[2].name == "step 3"
 
-    none_garbage = run_pipeline(pipeline, tmp_path, step_names=['garbage'])
+    none_garbage = run_pipeline(pipeline, tmp_path, run_recorder, step_names=['garbage'])
     assert len(none_garbage.step_results) == 0
 
-    middle_only = run_pipeline(pipeline, tmp_path, step_names=['step 2'])
+    middle_only = run_pipeline(pipeline, tmp_path, run_recorder, step_names=['step 2'])
     assert len(middle_only.step_results) == 1
     assert middle_only.step_results[0].name == "step 2"
 
-    skip_middle = run_pipeline(pipeline, tmp_path, step_names=['step 1', 'step 3'])
+    skip_middle = run_pipeline(pipeline, tmp_path, run_recorder, step_names=['step 1', 'step 3'])
     assert len(skip_middle.step_results) == 2
     assert skip_middle.step_results[0].name == "step 1"
     assert skip_middle.step_results[1].name == "step 3"
 
-    explicit_run_all = run_pipeline(pipeline, tmp_path, step_names=['step 1', 'step 2', 'step 3'])
+    explicit_run_all = run_pipeline(pipeline, tmp_path, run_recorder, step_names=['step 1', 'step 2', 'step 3'])
     assert len(explicit_run_all.step_results) == 3
     assert explicit_run_all.step_results[0].name == "step 1"
     assert explicit_run_all.step_results[1].name == "step 2"
@@ -885,7 +897,8 @@ def test_pipeline_with_X11(alpine_image, tmp_path):
             )
         ]
     )
-    pipeline_result = run_pipeline(pipeline, tmp_path)
+    run_recorder = RunRecorder(tmp_path)
+    pipeline_result = run_pipeline(pipeline, tmp_path, run_recorder)
     expected_step_results = [
         StepResult(name="step 1", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_1.log").as_posix()),
         StepResult(name="step 2", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_2.log").as_posix())
@@ -920,3 +933,26 @@ def test_pipeline_with_X11(alpine_image, tmp_path):
     assert xauthority_host not in step_2_amended.volumes
     assert "/tmp/.X11-unix" not in step_2_amended.volumes
     assert step_2_amended.network_mode is None
+
+
+def test_pipeline_interrupted(alpine_image, tmp_path):
+    # The kill command looks funny here: kill -INT $$$
+    # This is because run_pipeline does arg substitution on steps.
+    # And "$" makes this look like an arg to substitute.
+    # And, Python's string.Template treats "$$" as an excape sequence for "$".
+    pipeline = Pipeline(
+        steps=[
+            Step(name="step 1", image=alpine_image.tags[0], command=["echo", "hello 1"]),
+            Step(name="step 2", image=alpine_image.tags[0], command=["/bin/sh", "-c", f"kill -INT $$$"]),
+            Step(name="step 3", image=alpine_image.tags[0], command=["echo", "hello 3"])
+        ]
+    )
+
+    run_recorder = RunRecorder(tmp_path)
+    execution_record = run_pipeline(pipeline, tmp_path, run_recorder)
+    assert len(execution_record.step_results) == 2
+    assert execution_record.step_results[0].name == "step 1"
+    assert execution_record.step_results[0].exit_code == 0
+
+    assert execution_record.step_results[1].name == "step 2"
+    assert execution_record.step_results[1].exit_code == 130
