@@ -302,6 +302,94 @@ def test_step_privileged(alpine_image, tmp_path):
     assert "net" in read_step_logs(step_result)
 
 
+def test_step_progress_file_error(alpine_image, tmp_path):
+    progress_file = Path(tmp_path, "progress.txt")
+    step = Step(
+        name="progress file error",
+        image=alpine_image.tags[0],
+        command=["ls", "no_such_dir"],
+        progress_file=progress_file.as_posix()
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+    assert step_result.exit_code == 1
+    assert "no_such_dir: No such file or directory" in read_step_logs(step_result)
+
+    progress_done_file = Path(progress_file.as_posix() + ".done")
+    assert not progress_done_file.exists()
+
+    assert progress_file.exists()
+    with open(progress_file, "r") as f:
+        progress = f.read()
+    assert "exit code 1" in progress
+    assert "error in step progress file error" in progress
+
+
+def test_step_progress_file_success(alpine_image, tmp_path):
+    progress_file = Path(tmp_path, "progress.txt")
+    step = Step(
+        name="progress file success",
+        image=alpine_image.tags[0],
+        command=["ls", "."],
+        progress_file=progress_file.as_posix()
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+    assert step_result.exit_code == 0
+
+    assert not progress_file.exists()
+
+    progress_done_file = Path(progress_file.as_posix() + ".done")
+    assert progress_done_file.exists()
+    with open(progress_done_file, "r") as f:
+        progress = f.read()
+    assert "exit code 0" in progress
+    assert "completed step progress file success" in progress
+
+
+def test_step_progress_file_skip(alpine_image, tmp_path):
+    progress_file = Path(tmp_path, "progress.txt")
+    progress_done_file = Path(progress_file.as_posix() + ".done")
+    progress_done_file.touch()
+
+    step = Step(
+        name="progress file skip",
+        image=alpine_image.tags[0],
+        command=["ls", "."],
+        progress_file=progress_file.as_posix()
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.name == step.name
+    assert step_result.skipped
+    assert step_result.exit_code is None
+    assert step_result.progress_done_file == progress_done_file.as_posix()
+
+    assert not progress_file.exists()
+
+
+def test_step_progress_file_force_rerun(alpine_image, tmp_path):
+    progress_file = Path(tmp_path, "progress.txt")
+    progress_done_file = Path(progress_file.as_posix() + ".done")
+    progress_done_file.touch()
+
+    step = Step(
+        name="progress file skip",
+        image=alpine_image.tags[0],
+        command=["ls", "."],
+        progress_file=progress_file.as_posix()
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"), force_rerun=True)
+    assert step_result.name == step.name
+    assert not step_result.skipped
+    assert step_result.exit_code is 0
+    assert step_result.progress_done_file is None
+
+    assert not progress_file.exists()
+    assert progress_done_file.exists()
+
+
 def test_step_files_done(alpine_image, fixture_path, tmp_path):
     fixture_dir = fixture_path.as_posix()
     step = Step(

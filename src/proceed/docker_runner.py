@@ -116,6 +116,7 @@ def run_step(
     apply_step_X11(step)
 
     start = datetime.now(timezone.utc)
+    start_iso = start.isoformat(sep="T")
 
     # Create volume dirs on the host as the current user.
     # This is nicer than having dockerd create them as root!
@@ -126,8 +127,20 @@ def run_step(
             logging.info(f"Step '{step.name}': creating host directory: {volume_path}")
             volume_path.mkdir(parents=True, exist_ok=True)
 
-    # TODO: check for {progress_file}.done
-    # logging.info(f"Step '{step.name}': skipping execution because {progress_file}.done found.")
+    if step.progress_file is not None:
+        progress_done_file = Path(step.progress_file + ".done")
+        if progress_done_file.exists():
+            logging.info(f"Step '{step.name}': found progress .done file {progress_done_file}.")
+            if force_rerun:
+                logging.info(f"Step '{step.name}': executing despite .done file because force_rerun is {force_rerun}.")
+            else:
+                logging.info(f"Step '{step.name}': skipping execution because .done file found {progress_done_file}.")
+                return StepResult(
+                    name=step.name,
+                    skipped=True,
+                    progress_done_file=progress_done_file.as_posix(),
+                    timing=Timing(start_iso)
+            )
 
     files_done = match_patterns_in_dirs(volume_dirs, step.match_done)
     if files_done:
@@ -141,16 +154,20 @@ def run_step(
                 name=step.name,
                 skipped=True,
                 files_done=files_done,
-                timing=Timing(start.isoformat(sep="T"))
+                timing=Timing(start_iso)
             )
 
-    # TODO: create or truncate progress_file
+    if step.progress_file is not None:
+        progress_file = Path(step.progress_file)
+        with open(progress_file, "w") as f:
+            f.write(f"{start_iso} Starting step {step.name}")
 
     files_in = match_patterns_in_dirs(volume_dirs, step.match_in)
     logging.info(f"Step '{step.name}': found {count_matches(files_in)} input files.")
 
-    # TODO: append "starting container" to progress_file
     (container, exit_code, exception) = run_container(step, log_path, client_kwargs)
+    finish = datetime.now(timezone.utc)
+    finish_iso = finish.isoformat(sep="T")
 
     if exception is not None:
         # The container completed with an error.
@@ -163,13 +180,11 @@ def run_step(
         with open(log_path, 'a') as f:
             f.write(error_message)
 
-        # TODO: append error message to progress_file
-
         logging.error(f"Step '{step.name}': error (see stack trace above) {error_message}")
         return StepResult(
             name=step.name,
             log_file=log_path.as_posix(),
-            timing=Timing(start.isoformat(sep="T")),
+            timing=Timing(start_iso),
             exit_code=exit_code
         )
 
@@ -180,13 +195,25 @@ def run_step(
     files_summary = match_patterns_in_dirs(volume_dirs, step.match_summary)
     logging.info(f"Step '{step.name}': found {count_matches(files_summary)} summary files.")
 
-    finish = datetime.now(timezone.utc)
-    duration = finish - start
+    if step.progress_file is not None:
+        progress_file = Path(step.progress_file)
+        if exit_code == 0:
+            # Append a success messge to the progress_file.
+            with open(progress_file, "a") as f:
+                f.write(f"{finish_iso} exit code {exit_code}")
+                f.write(f"{finish_iso} completed step {step.name}")
 
-    # TODO: append success message to progress_file
-    # TODO: rename progress_file to {progress_file}.done
+            # Rename the progress_file to <progress_file>.done.
+            progress_file.rename(step.progress_file + ".done")
+            logging.info(f"Step '{step.name}': renamed {progress_file} to {progress_done_file}.")
+        else:
+            # Append an error messge to the progress_file.
+            with open(progress_file, "a") as f:
+                f.write(f"{finish_iso} exit code {exit_code}")
+                f.write(f"{finish_iso} error in step {step.name}")
 
     logging.info(f"Step '{step.name}': finished.")
+    duration = finish - start
     return StepResult(
         name=step.name,
         image_id=container.image.id,
@@ -318,7 +345,7 @@ def run_container(
             f.write(retry_log_message)
         logging.info(retry_log_message.strip())
 
-    # If we got here it means we exhausted max_attempts, so we expect retried_exception to be filed in.
+    # If we got here it means we exhausted max_attempts, so we expect retried_exception to be filled in.
     return (None, -1, retried_exception)
 
 

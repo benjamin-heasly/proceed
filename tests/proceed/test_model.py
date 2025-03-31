@@ -28,6 +28,7 @@ pipeline_spec = """
       mac_address: "aa:bb:cc:dd:ee:ff"
       command: ["command", "a"]
       working_dir: /foo/a1
+      progress_file: /baz/progress.txt
     - name: b
       description: Test of a step -- b
       image: image-b
@@ -64,7 +65,8 @@ def test_model_from_yaml():
                 mac_address="aa:bb:cc:dd:ee:ff",
                 volumes={"/dir_a_1": "/foo/a1", "/dir_a_2": "/bar/a2"},
                 command=["command", "a"],
-                working_dir="/foo/a1"
+                working_dir="/foo/a1",
+                progress_file="/baz/progress.txt",
             ),
             Step(
                 name="b",
@@ -113,7 +115,8 @@ def test_apply_args_to_step():
             "/host/$simple": "/container/$simple",
             "/host/$complex": {"bind": "/container/$complex", "mode": "rw"}
         },
-        command=["$executable", "$arg_1", "${arg_2_prefix}_plus_some_suffix"]
+        command=["$executable", "$arg_1", "${arg_2_prefix}_plus_some_suffix"],
+        progress_file="/baz/$name.txt"
     )
     args = {
         "name": "step_name",
@@ -137,7 +140,8 @@ def test_apply_args_to_step():
             "/host/path_a": "/container/path_a",
             "/host/path_b": {"bind": "/container/path_b", "mode": "rw"}
         },
-        command=["command_executable", "command_first_arg", "command_second_arg_prefix_plus_some_suffix"]
+        command=["command_executable", "command_first_arg", "command_second_arg_prefix_plus_some_suffix"],
+        progress_file="/baz/step_name.txt"
     )
     assert step_with_args_applied.name == expected_step.name
     assert step_with_args_applied == expected_step
@@ -276,7 +280,8 @@ def test_apply_prototype_to_steps():
             environment={"prototype_env": "prototype", "common_env": "prototype"},
             volumes={"/prototype_dir": "/prototype", "/common_dir": "/prototype"},
             image="image:prototype",
-            user="user_name"
+            user="user_name",
+            progress_file="/baz/progress.txt"
         ),
         steps=[
             Step(
@@ -306,7 +311,8 @@ def test_apply_prototype_to_steps():
             environment={"prototype_env": "prototype", "common_env": "prototype"},
             volumes={"/prototype_dir": "/prototype", "/common_dir": "/prototype"},
             image="image:prototype",
-            user="user_name"
+            user="user_name",
+            progress_file="/baz/progress.txt"
         ),
         steps=[
             Step(
@@ -315,7 +321,8 @@ def test_apply_prototype_to_steps():
                 environment={"prototype_env": "prototype", "common_env": "step-a", "step_env": "step-a"},
                 volumes={"/prototype_dir": "/prototype", "/common_dir": "/prototype"},
                 image="image:step-a",
-                user="user_name"
+                user="user_name",
+                progress_file="/baz/progress.txt"
             ),
             Step(
                 name="step-b",
@@ -323,7 +330,8 @@ def test_apply_prototype_to_steps():
                 environment={"prototype_env": "prototype", "common_env": "prototype"},
                 volumes={"/prototype_dir": "/prototype", "/common_dir": "/step-b", "/step_dir": "/step-b"},
                 image="image:prototype",
-                user="user_name"
+                user="user_name",
+                progress_file="/baz/progress.txt"
             ),
         ]
     )

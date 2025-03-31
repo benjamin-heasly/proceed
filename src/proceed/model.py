@@ -107,7 +107,7 @@ class Step(YamlData):
     """A working directory path within the container -- the initial shell ``pwd`` or Python ``os.getcwd()``."""
 
     progress_file: str = None
-    """File to create when the step starts, and rename with ``.done`` when the step succeeds.
+    """File to create when the step starts, and rename to ``<progress_file>.done`` when the step succeeds.
 
     This is an optional marker file that Proceed can use to indicate progress through the step
     and to decide whether step is already complete and can be skipped.
@@ -117,13 +117,18 @@ class Step(YamlData):
     :attr:`Step.volumes`.
 
     Proceed will create :attr:`Step.progress_file` when starting to execute a step.  If the
-    step completes with an error, Proceed will append an error message to the file.
-    If the step completes without error, Proceed will append a success message to the file
+    step completes with a nonzero exit code, Proceed will append an error message to the file.
+    If the step completes with a zero exit code, Proceed will append a success message to the file
     and rename the file, adding the suffix, ``.done``.
 
     When ``<progress_file>.done`` already exists the step will be skipped.
     This is intended as a convenience to avoid redundant processing.
     To make a step run unconditionally, omit :attr:`Step.progress_file` and :attr:`match_done`.
+
+    For example, say :attr:`Step.progress_file` is given as ``progress.txt``.  When beginning
+    the step, Proceed will create ``progress.txt``.  When the step ends, Proceed will append
+    a success or error message to ``progress.txt``, and rename the file to ``progress.txt.done``.
+    Next time the step runs, if ``progress.txt.done`` still exists, the step will be skipped.
     """
 
     match_done: list[str] = field(default_factory=list)
@@ -384,6 +389,7 @@ class Step(YamlData):
             command=apply_args(self.command, args),
             volumes=apply_args(self.volumes, args),
             working_dir=apply_args(self.working_dir, args),
+            progress_file=apply_args(self.progress_file, args),
             match_done=apply_args(self.match_done, args),
             match_in=apply_args(self.match_in, args),
             match_out=apply_args(self.match_out, args),
@@ -410,6 +416,7 @@ class Step(YamlData):
             command=self.command or prototype.command,
             volumes={**prototype.volumes, **self.volumes},
             working_dir=self.working_dir or prototype.working_dir,
+            progress_file=self.progress_file or prototype.progress_file,
             match_done=self.match_done or prototype.match_done,
             match_in=self.match_in or prototype.match_in,
             match_out=self.match_out or prototype.match_out,
@@ -475,6 +482,15 @@ class StepResult(YamlData):
 
     timing: Timing = field(compare=False, default=None)
     """Start datetime, finish datetime, and duration for the step's container process."""
+
+    progress_done_file: str = None
+    """File that matches the :class:`Step` ``<progress_file>.done``.
+
+    When :attr:`progress_done_file` is found the :class:`Step` is considered
+    to be already complete before running, and :attr:`skipped` should be ``True``.
+
+    See :attr:`Step.progress_file`.
+    """
 
     files_done: dict[str, dict[str, str]] = field(default_factory=dict)
     """Files that matched the :attr:`Step.match_done` pattern.
