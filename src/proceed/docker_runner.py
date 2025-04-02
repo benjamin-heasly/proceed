@@ -189,6 +189,7 @@ def run_step(
 
     if step.progress_file is not None:
         progress_file = Path(step.progress_file)
+        progress_file.parent.mkdir(parents=True, exist_ok=True)
         with open(progress_file, "w") as f:
             f.write(f"{start_iso} Starting step {step.name}\n")
 

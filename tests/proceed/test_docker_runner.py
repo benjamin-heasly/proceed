@@ -357,6 +357,29 @@ def test_step_progress_file_success(alpine_image, tmp_path):
     assert "completed step progress file success\n" in progress
 
 
+def test_step_progress_file_create_parents(alpine_image, tmp_path):
+    progress_file = Path(tmp_path, "parent1", "parent2", "progress.txt")
+    step = Step(
+        name="progress file create parents",
+        image=alpine_image.tags[0],
+        command=["ls", "."],
+        progress_file=progress_file.as_posix()
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+    assert step_result.exit_code == 0
+
+    assert not progress_file.exists()
+
+    progress_done_file = Path(progress_file.as_posix() + ".done")
+    assert progress_done_file.exists()
+    with open(progress_done_file, "r") as f:
+        progress = f.read()
+    assert "exit code 0\n" in progress
+    assert "completed step progress file create parents\n" in progress
+
+
 def test_step_progress_file_skip(alpine_image, tmp_path):
     progress_file = Path(tmp_path, "progress.txt")
     progress_done_file = Path(progress_file.as_posix() + ".done")
