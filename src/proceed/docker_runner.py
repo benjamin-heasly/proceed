@@ -190,7 +190,7 @@ def run_step(
     if step.progress_file is not None:
         progress_file = Path(step.progress_file)
         with open(progress_file, "w") as f:
-            f.write(f"{start_iso} Starting step {step.name}")
+            f.write(f"{start_iso} Starting step {step.name}\n")
 
     files_in = match_patterns_in_dirs(volume_dirs, step.match_in)
     logging.info(f"Step '{step.name}': found {count_matches(files_in)} input files.")
@@ -230,8 +230,8 @@ def run_step(
         if exit_code == 0:
             # Append a success messge to the progress_file.
             with open(progress_file, "a") as f:
-                f.write(f"{finish_iso} exit code {exit_code}")
-                f.write(f"{finish_iso} completed step {step.name}")
+                f.write(f"{finish_iso} exit code {exit_code}\n")
+                f.write(f"{finish_iso} completed step {step.name}\n")
 
             # Rename the progress_file to <progress_file>.done.
             progress_file.rename(step.progress_file + ".done")
@@ -239,8 +239,8 @@ def run_step(
         else:
             # Append an error messge to the progress_file.
             with open(progress_file, "a") as f:
-                f.write(f"{finish_iso} exit code {exit_code}")
-                f.write(f"{finish_iso} error in step {step.name}")
+                f.write(f"{finish_iso} exit code {exit_code}\n")
+                f.write(f"{finish_iso} error in step {step.name}\n")
 
     logging.info(f"Step '{step.name}': finished.")
     duration = finish - start

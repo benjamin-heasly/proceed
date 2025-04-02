@@ -330,8 +330,8 @@ def test_step_progress_file_error(alpine_image, tmp_path):
     assert progress_file.exists()
     with open(progress_file, "r") as f:
         progress = f.read()
-    assert "exit code 1" in progress
-    assert "error in step progress file error" in progress
+    assert "exit code 1\n" in progress
+    assert "error in step progress file error\n" in progress
 
 
 def test_step_progress_file_success(alpine_image, tmp_path):
@@ -353,8 +353,8 @@ def test_step_progress_file_success(alpine_image, tmp_path):
     assert progress_done_file.exists()
     with open(progress_done_file, "r") as f:
         progress = f.read()
-    assert "exit code 0" in progress
-    assert "completed step progress file success" in progress
+    assert "exit code 0\n" in progress
+    assert "completed step progress file success\n" in progress
 
 
 def test_step_progress_file_skip(alpine_image, tmp_path):
