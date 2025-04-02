@@ -126,8 +126,8 @@ class Step(YamlData):
     To make a step run unconditionally, omit :attr:`Step.progress_file` and :attr:`match_done`.
 
     For example, say :attr:`Step.progress_file` is given as ``progress.txt``.  When beginning
-    the step, Proceed will create ``progress.txt``.  When the step ends, Proceed will append
-    a success or error message to ``progress.txt``, and rename the file to ``progress.txt.done``.
+    the step, Proceed will create ``progress.txt``.  When the step succeeds Proceed will append
+    a success message to ``progress.txt`` and rename the file to ``progress.txt.done``.
     Next time the step runs, if ``progress.txt.done`` still exists, the step will be skipped.
     """
 
