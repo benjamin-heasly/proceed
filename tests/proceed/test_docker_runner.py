@@ -195,42 +195,61 @@ def test_step_gpus_none(ubuntu_image, tmp_path):
     assert '"nvidia-smi": executable file not found' in read_step_logs(step_result)
 
 
-def test_step_gpus_by_id(ubuntu_image, tmp_path):
+def test_step_gpu_by_id(ubuntu_image, tmp_path):
     # The ubuntu image, but not alpine, provides the "nvidia-smi" utility we want.
+    phony_device_id = "GPU-3a23c669-1f69-c64e-cf85-44e9b07e7a2a"
     step = Step(
         name="gpus",
-        gpus=["GPU-3a23c669-1f69-c64e-cf85-44e9b07e7a2a"],
+        gpus=[phony_device_id],
         image=ubuntu_image.tags[0],
         command=["nvidia-smi"]
     )
     step_result = run_step(step, Path(tmp_path, "step.log"))
     assert step_result.name == step.name
 
-    # Awkwardly, the result of this test depends on whether the host has docker "--gpus" support.
-    # For this test we want to know whether we correctly *requested* a gpu device.
-    # We don't actually care if the process was able to use a gpu.
-    # So, we'll check for two expected outcomes, assuming we at least *requested* the gpu.
-    if step_result.exit_code == 0: # pragma: no cover
-        # Host seems to have docker "--gpus" support.
-        # This is expected when testing installation on real hardware.
-        # But not in CI, so we don't ask pytest-cov to track coverage for this case.
-
-        # Host seems to have docker "--gpus" support.
-        assert step_result.timing._is_complete()
-        assert "NVIDIA-SMI" in read_step_logs(step_result)
-    else:
-        # Host seems not to have docker "--gpus" support, check for relevant error, as in:
-        # https://github.com/NVIDIA/nvidia-docker/issues/1034
-        # This is the usual case when testing on laptops, CI, etc. where there's no GPU.
-        assert not step_result.timing._is_complete()
-        assert 'could not select device driver "" with capabilities: [[gpu]]' in read_step_logs(step_result)
+    # The outcome of this test depends on whether the host has docker "--gpus" support.
+    # For this test what matters is whether we correctly *requested* the intended gpu device.
+    # It's not important whether the process could actually use a gpu.
+    assert not step_result.timing._is_complete()
+    assert (
+        # The host does not have gpu support, but we requested a gpu device.
+        'could not select device driver "" with capabilities: [[gpu]]' in read_step_logs(step_result)
+        or
+        # The has gpu support, but we requested a phony device.
+        f'device error: {phony_device_id}: unknown device' in read_step_logs(step_result)
+    )
 
 
 def test_step_gpus_by_index(ubuntu_image, tmp_path):
     # The ubuntu image, but not alpine, provides the "nvidia-smi" utility we want.
+    phony_device_index = "99"
     step = Step(
         name="gpus",
-        gpus=["0", "2"],
+        gpus=["0", phony_device_index],
+        image=ubuntu_image.tags[0],
+        command=["nvidia-smi"]
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.name == step.name
+
+    # The outcome of this test depends on whether the host has docker "--gpus" support.
+    # For this test what matters is whether we correctly *requested* the intended gpu device.
+    # It's not important whether the process could actually use a gpu.
+    assert not step_result.timing._is_complete()
+    assert (
+        # The host does not have gpu support, but we requested a gpu device.
+        'could not select device driver "" with capabilities: [[gpu]]' in read_step_logs(step_result)
+        or
+        # The has gpu support, but we requested a phony device.
+        f'device error: {phony_device_index}: unknown device' in read_step_logs(step_result)
+    )
+
+
+def test_step_first_gpu_by_index(ubuntu_image, tmp_path):
+    # The ubuntu image, but not alpine, provides the "nvidia-smi" utility we want.
+    step = Step(
+        name="gpus",
+        gpus=["0"],
         image=ubuntu_image.tags[0],
         command=["nvidia-smi"]
     )
