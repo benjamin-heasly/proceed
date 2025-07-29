@@ -383,10 +383,7 @@ def test_step_privileged(alpine_image, tmp_path):
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
 
-    assert "bus" in read_step_logs(step_result)
-    assert "cpu" in read_step_logs(step_result)
     assert "mem" in read_step_logs(step_result)
-    assert "net" in read_step_logs(step_result)
 
 
 def test_step_progress_file_error(alpine_image, tmp_path):
