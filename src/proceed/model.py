@@ -234,21 +234,34 @@ class Step(YamlData):
               foo: bar
     """
 
-    gpus: str | bool = None
-    """Whether or not to request GPU device support.
+    gpus: str | bool | list[str] = None
+    """Which GPU devices to request.
 
-    When :attr:`gpus` is ``True`` / truthy, request GPU device support similar to the
-    Docker run ``--gpus all``.  Note: the empty string ``""`` will be treated as ``False``.
-    `resource request <https://docs.docker.com/config/containers/resource_constraints/#gpu>`_.
+    When :attr:`gpus` is ``True`` or truthy, request GPU device support similar to ``docker run --gpus all``.
+    Note: the empty string ``""`` will be treated as ``False``.
+
+    When :attr:`gpus` is a list, the list elements will be treated as specific GPU device IDs or indexes to request.
+    The Ids or indexes should be strings, not numeric.
+
+    See Docker `resource constraints <https://docs.docker.com/config/containers/resource_constraints/#gpu>`_.
 
     .. code-block:: yaml
 
         steps:
-          - name: gpus example
+          - name: all gpus with truthy string
             gpus: true
+        steps:
+          - name: no GPUs with non-truthy string
+            gpus: ""
+        steps:
+          - name: one specific gpu by id
+            gpus: ['GPU-3a23c669-1f69-c64e-cf85-44e9b07e7a2a']
+        steps:
+          - name: two specific gpus by index
+            gpus: [0, 2]
     """
 
-    user: str | int = None
+    user: str = None
     """User (and group) to run as in the container, instead of container default (usually root).
 
     When :attr:`user` is omitted or ``None`` the container will run with the default user

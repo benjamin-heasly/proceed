@@ -5,6 +5,7 @@ from pathlib import Path
 from os import getuid, getgid, environ
 from grp import getgrnam
 import docker
+from docker.types import DeviceRequest
 from docker.models.containers import Container
 from docker.errors import DockerException, APIError
 from proceed.run_recorder import RunRecorder
@@ -299,8 +300,22 @@ def run_container(
         try:
             device_requests = []
             if step.gpus:
-                # This is roughly equivalent to the "--gpus" in "docker run --gpus ...".
-                device_requests.append(docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]]))
+                if isinstance(step.gpus, list):
+                    # Request specific gpus by id or index, similar to:
+                    #   docker run --gpus device=GPU-3a23c669-1f69-c64e-cf85-44e9b07e7a2a
+                    #   docker run --gpus '"device=0,2"'
+                    gpu_request = DeviceRequest(
+                        device_ids=step.gpus,
+                        capabilities=[["gpu"]]
+                    )
+                else:
+                    # Request all gpus, similar to:
+                    #   docker run --gpus all
+                    gpu_request = DeviceRequest(
+                        count=-1,
+                        capabilities=[["gpu"]]
+                    )
+                device_requests.append(gpu_request)
 
             container_user = resolve_user(step.user)
             if container_user is None:
