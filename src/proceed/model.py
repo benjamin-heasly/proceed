@@ -68,7 +68,7 @@ class Step(YamlData):
 
     The command should be given as a list of string arguments.
     The list form makes it clear which argument is which and avoids confusion
-    around spaces and quotes.
+    around spaces and quotes.  All command elements will be converted to strings with str().
 
     .. code-block:: yaml
 

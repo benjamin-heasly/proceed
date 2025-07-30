@@ -660,6 +660,19 @@ def test_step_files_summary(alpine_image, fixture_path, tmp_path):
     assert not step_result.skipped
 
 
+def test_step_command_int_arg(alpine_image, tmp_path):
+    step = Step(
+        name="int command arg",
+        image=alpine_image.tags[0],
+        command=["du", "-d", 1]
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"))
+    assert step_result.name == step.name
+    assert step_result.image_id == alpine_image.id
+    assert step_result.exit_code == 0
+    assert "/bin" in read_step_logs(step_result)
+
+
 def test_pipeline_with_args(alpine_image, tmp_path):
     pipeline = Pipeline(
         args={

@@ -330,10 +330,13 @@ def run_container(
                 logging.warning(f"Container '{step.name}' using privileged mode.  Only use this for troubleshooting!")
 
             client = docker.from_env(**client_kwargs)
-            command_strs = step.command#[str(arg) for arg in step.command]
+            if isinstance(step.command, list):
+                command = [str(arg) for arg in step.command]
+            else:
+                command = step.command
             container = client.containers.run(
                 step.image,
-                command=command_strs,
+                command=command,
                 environment=step.environment,
                 device_requests=device_requests,
                 network_mode=step.network_mode,
