@@ -222,10 +222,10 @@ def test_step_gpu_by_id(ubuntu_image, tmp_path):
 
 def test_step_gpus_by_index(ubuntu_image, tmp_path):
     # The ubuntu image, but not alpine, provides the "nvidia-smi" utility we want.
-    phony_device_index = "99"
+    phony_device_index = 99
     step = Step(
         name="gpus",
-        gpus=["0", phony_device_index],
+        gpus=[0, phony_device_index],
         image=ubuntu_image.tags[0],
         command=["nvidia-smi"]
     )

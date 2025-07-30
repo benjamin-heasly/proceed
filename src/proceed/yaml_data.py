@@ -95,3 +95,10 @@ class YamlData():
                     raw_list = getattr(self, field.name)
                     blessed_list = [element_type.from_dict(e) for e in raw_list if isinstance(e, dict)]
                     setattr(self, field.name, blessed_list)
+
+    def parse_yaml_string(self, value):
+        """Convenience to parse the given string value as yaml."""
+        if isinstance(value, str):
+            return yaml.safe_load(value)
+        else:
+            return value

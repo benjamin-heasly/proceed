@@ -234,30 +234,28 @@ class Step(YamlData):
               foo: bar
     """
 
-    gpus: str | bool | list[str] = None
+    gpus: bool | list[str | int] = None
     """Which GPU devices to request.
 
-    When :attr:`gpus` is ``True`` or truthy, request GPU device support similar to ``docker run --gpus all``.
-    Note: the empty string ``""`` will be treated as ``False``.
+    When :attr:`gpus` is ``True``, request GPU device support similar to ``docker run --gpus all``.
 
     When :attr:`gpus` is a list, the list elements will be treated as specific GPU device IDs or indexes to request.
-    The Ids or indexes should be strings, not numeric.
 
     See Docker `resource constraints <https://docs.docker.com/config/containers/resource_constraints/#gpu>`_.
 
     .. code-block:: yaml
 
         steps:
-          - name: all gpus with truthy string
+          - name: all gpus
             gpus: true
         steps:
-          - name: no GPUs with non-truthy string
-            gpus: ""
+          - name: no gpus
+            gpus: false
         steps:
-          - name: one specific gpu by id
+          - name: one specific gpu by string id
             gpus: ['GPU-3a23c669-1f69-c64e-cf85-44e9b07e7a2a']
         steps:
-          - name: two specific gpus by index
+          - name: two specific gpus by numeric index
             gpus: [0, 2]
     """
 
@@ -408,13 +406,13 @@ class Step(YamlData):
             match_out=apply_args(self.match_out, args),
             match_summary=apply_args(self.match_summary, args),
             environment=apply_args(self.environment, args),
-            gpus=apply_args(self.gpus, args),
+            gpus=self.parse_yaml_string(apply_args(self.gpus, args)),
             network_mode=apply_args(self.network_mode, args),
             mac_address=apply_args(self.mac_address, args),
             user=apply_args(self.user, args),
             shm_size=apply_args(self.shm_size, args),
-            privileged=apply_args(self.privileged, args),
-            X11=apply_args(self.X11, args)
+            privileged=self.parse_yaml_string(apply_args(self.privileged, args)),
+            X11=self.parse_yaml_string(apply_args(self.X11, args))
         )
 
     def _with_prototype_applied(self, prototype: Self) -> Self:

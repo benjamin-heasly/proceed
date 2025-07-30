@@ -304,13 +304,16 @@ def run_container(
                     # Request specific gpus by id or index, similar to:
                     #   docker run --gpus device=GPU-3a23c669-1f69-c64e-cf85-44e9b07e7a2a
                     #   docker run --gpus '"device=0,2"'
+                    gpu_strs = [str(gpu) for gpu in step.gpus]
+                    logging.info(f"Container '{step.name}': requesting gpus: {gpu_strs}.")
                     gpu_request = DeviceRequest(
-                        device_ids=step.gpus,
+                        device_ids=gpu_strs,
                         capabilities=[["gpu"]]
                     )
                 else:
                     # Request all gpus, similar to:
                     #   docker run --gpus all
+                    logging.info(f"Container '{step.name}': requesting all gpus.")
                     gpu_request = DeviceRequest(
                         count=-1,
                         capabilities=[["gpu"]]
@@ -327,9 +330,10 @@ def run_container(
                 logging.warning(f"Container '{step.name}' using privileged mode.  Only use this for troubleshooting!")
 
             client = docker.from_env(**client_kwargs)
+            command_strs = step.command#[str(arg) for arg in step.command]
             container = client.containers.run(
                 step.image,
-                command=step.command,
+                command=command_strs,
                 environment=step.environment,
                 device_requests=device_requests,
                 network_mode=step.network_mode,

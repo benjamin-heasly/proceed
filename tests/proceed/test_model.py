@@ -116,7 +116,10 @@ def test_apply_args_to_step():
             "/host/$complex": {"bind": "/container/$complex", "mode": "rw"}
         },
         command=["$executable", "$arg_1", "${arg_2_prefix}_plus_some_suffix"],
-        progress_file="/baz/$name.txt"
+        progress_file="/baz/$name.txt",
+        gpus="$gpus",
+        privileged="$privileged",
+        X11="$X11"
     )
     args = {
         "name": "step_name",
@@ -128,7 +131,10 @@ def test_apply_args_to_step():
         "complex": "path_b",
         "executable": "command_executable",
         "arg_1": "command_first_arg",
-        "arg_2_prefix": "command_second_arg_prefix"
+        "arg_2_prefix": "command_second_arg_prefix",
+        "gpus": "['abc', 123]",
+        "privileged": "false",
+        "X11": "true"
     }
     step_with_args_applied = step._with_args_applied(args)
     expected_step = step = Step(
@@ -141,7 +147,10 @@ def test_apply_args_to_step():
             "/host/path_b": {"bind": "/container/path_b", "mode": "rw"}
         },
         command=["command_executable", "command_first_arg", "command_second_arg_prefix_plus_some_suffix"],
-        progress_file="/baz/step_name.txt"
+        progress_file="/baz/step_name.txt",
+        gpus=['abc', 123],
+        privileged=False,
+        X11=True
     )
     assert step_with_args_applied.name == expected_step.name
     assert step_with_args_applied == expected_step
