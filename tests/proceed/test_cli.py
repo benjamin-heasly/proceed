@@ -345,3 +345,25 @@ def test_local_options_file(fixture_path, fixture_specs, tmp_path):
         effective_config_options = yaml.safe_load(f.read())
     assert effective_config_options["results_dir"] == tmp_path.as_posix()
     assert effective_config_options["args"] == {"data_dir": "/local/data/dir"}
+
+
+def test_specify_docker_runner(fixture_specs, tmp_path, alpine_image):
+    pipeline_spec = fixture_specs['happy_spec.yaml'].as_posix()
+    cli_args = ["run", pipeline_spec,
+                '--results-dir', tmp_path.as_posix(),
+                '--results-id', "test",
+                '--args', 'arg_1=quux',
+                '--runner', 'docker']
+    exit_code = main(cli_args)
+    assert exit_code == 0
+
+
+def test_specify_invalid_runner(fixture_specs, tmp_path, alpine_image):
+    pipeline_spec = fixture_specs['happy_spec.yaml'].as_posix()
+    cli_args = ["run", pipeline_spec,
+                '--results-dir', tmp_path.as_posix(),
+                '--results-id', "test",
+                '--args', 'arg_1=quux',
+                '--runner', 'NOPE']
+    exit_code = main(cli_args)
+    assert exit_code == -2

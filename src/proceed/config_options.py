@@ -156,6 +156,13 @@ class ConfigOptions():
         cli_help_default="all columns",
     ))
 
+    runner: ConfigOption = field(default_factory=lambda: ConfigOption(
+        cli_long_name="--runner",
+        cli_short_name="-r",
+        cli_help="backend to use for executing pipeline steps: docker or slurm",
+        cli_help_default="detect available backends (prefer docker over slurm)",
+    ))
+
     yaml_skip_empty: ConfigOption = field(default_factory=lambda: ConfigOption(
         value=True,
         cli_long_name="--yaml-skip-empty",

@@ -8,7 +8,7 @@ from typing import Optional, Sequence
 from proceed.model import Pipeline
 from proceed.config_options import ConfigOptions, resolve_config_options
 from proceed.run_recorder import RunRecorder
-from proceed.docker_runner import run_pipeline
+from proceed.runner_protocol import run_pipeline, make_runner, discover_runner
 from proceed.aggregator import summarize_results
 from proceed.__about__ import __version__ as proceed_version
 
@@ -73,11 +73,24 @@ def run(spec: str, config_options: ConfigOptions) -> int:
 
     run_recorder = RunRecorder(execution_path, config_options=config_options)
 
+    runner_name = config_options.runner.value
+    if runner_name:
+        logging.info(f"Using runner: {runner_name}")
+        runner = make_runner(runner_name)
+    else:
+        logging.info("No runner specified, attempting to detect available runners.")
+        runner = discover_runner()
+
+    if not runner:
+        logging.error("Unable to create a backend runner!")
+        return -2
+
     logging.info(f"Running pipeline with args: {config_options.args.value}")
     pipeline_result = run_pipeline(
         original=pipeline,
         execution_path=execution_path,
         run_recorder=run_recorder,
+        runner=runner,
         args=config_options.args.value,
         force_rerun=config_options.force_rerun.value,
         step_names=config_options.step_names.value)
