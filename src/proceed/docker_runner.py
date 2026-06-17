@@ -334,13 +334,32 @@ def run_container(
                 command = [str(arg) for arg in step.command]
             else:
                 command = step.command
+
+            # Docker 27+ removed mac_address from ContainerConfig, now we must use NetworkingConfig.
+            # NetworkingConfig is only accepted when using the using the `network` kwarg as well.
+            # Network modes like "host", "none", and "container:*" don't support custom MAC addresses.
+            safe_network_mode = step.network_mode or ""
+            should_use_network_config = (
+                step.mac_address
+                and safe_network_mode not in {"host", "none"}
+                and not safe_network_mode.startswith("container:")
+            )
+            if should_use_network_config:
+                network_name = step.network_mode or "bridge"
+                network_kwargs = {
+                    "network": network_name,
+                    "networking_config": {
+                        network_name: client.api.create_endpoint_config(mac_address=step.mac_address)
+                    }
+                }
+            else:
+                network_kwargs = {"network_mode": step.network_mode}
+
             container = client.containers.run(
                 step.image,
                 command=command,
                 environment=step.environment,
                 device_requests=device_requests,
-                network_mode=step.network_mode,
-                mac_address=step.mac_address,
                 volumes=normalize_volumes(step.volumes),
                 working_dir=step.working_dir,
                 auto_remove=False,
@@ -348,7 +367,8 @@ def run_container(
                 detach=True,
                 user=container_user,
                 shm_size=step.shm_size,
-                privileged=step.privileged
+                privileged=step.privileged,
+                **network_kwargs,
             )
             logging.info(f"Container '{step.name}': waiting for process to complete.")
 

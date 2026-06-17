@@ -174,8 +174,12 @@ def test_step_gpus_all(ubuntu_image, tmp_path):
         # Host seems not to have docker "--gpus" support, check for relevant error, as in:
         # https://github.com/NVIDIA/nvidia-docker/issues/1034
         # This is the usual case when testing on laptops, CI, etc. where there's no GPU.
+        # Docker 29+ uses Container Device Interface for GPU discovery which raises a different error.
         assert not step_result.timing._is_complete()
-        assert 'could not select device driver "" with capabilities: [[gpu]]' in read_step_logs(step_result)
+        assert (
+            'could not select device driver "" with capabilities: [[gpu]]' in read_step_logs(step_result)
+            or 'failed to discover GPU vendor from CDI: no known GPU vendor found' in read_step_logs(step_result)
+        )
 
 
 def test_step_gpus_none(ubuntu_image, tmp_path):
@@ -215,7 +219,10 @@ def test_step_gpu_by_id(ubuntu_image, tmp_path):
         # The host does not have gpu support, but we requested a gpu device.
         'could not select device driver "" with capabilities: [[gpu]]' in read_step_logs(step_result)
         or
-        # The has gpu support, but we requested a phony device.
+        # Docker 29+ uses Container Device Interface for GPU discovery which raises a different error.
+        'failed to discover GPU vendor from CDI: no known GPU vendor found' in read_step_logs(step_result)
+        or
+        # The host has gpu support, but we requested a phony device.
         f'device error: {phony_device_id}: unknown device' in read_step_logs(step_result)
     )
 
@@ -240,7 +247,10 @@ def test_step_gpus_by_index(ubuntu_image, tmp_path):
         # The host does not have gpu support, but we requested a gpu device.
         'could not select device driver "" with capabilities: [[gpu]]' in read_step_logs(step_result)
         or
-        # The has gpu support, but we requested a phony device.
+        # Docker 29+ uses Container Device Interface for GPU discovery which raises a different error.
+        'failed to discover GPU vendor from CDI: no known GPU vendor found' in read_step_logs(step_result)
+        or
+        # The host has gpu support, but we requested a phony device.
         f'device error: {phony_device_index}: unknown device' in read_step_logs(step_result)
     )
 
@@ -272,8 +282,12 @@ def test_step_first_gpu_by_index(ubuntu_image, tmp_path):
         # Host seems not to have docker "--gpus" support, check for relevant error, as in:
         # https://github.com/NVIDIA/nvidia-docker/issues/1034
         # This is the usual case when testing on laptops, CI, etc. where there's no GPU.
+        # Docker 29+ uses Container Device Interface for GPU discovery which raises a different error.
         assert not step_result.timing._is_complete()
-        assert 'could not select device driver "" with capabilities: [[gpu]]' in read_step_logs(step_result)
+        assert (
+            'could not select device driver "" with capabilities: [[gpu]]' in read_step_logs(step_result)
+            or 'failed to discover GPU vendor from CDI: no known GPU vendor found' in read_step_logs(step_result)
+        )
 
 
 def test_step_default_user(alpine_image, tmp_path):
