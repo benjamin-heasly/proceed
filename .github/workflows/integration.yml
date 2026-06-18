@@ -27,3 +27,21 @@ jobs:
     - name: Test with Docker backend
       run: |
         hatch run proceed run tests/smoke_test.yaml --runner docker
+
+    - name: Test with Slurm backend (Slurm running locally via Docker Compose)
+      run: |
+        # Stand up a local Slurm cluster, with enroot and pyxis for containers.
+        # This takes a few minutes to do some Docker builds.
+        git clone https://github.com/benjamin-heasly/slurm-docker-cluster.git
+        cd slurm-docker-cluster
+        make up
+
+        # Add an "srun" wrapper script that forwards into the local scheduler container.
+        cd ..
+        export PATH=$PATH:$PWD/slurm-docker-cluster/bin
+
+        # Use the slurm runner via, via the srun wrapper, into the Compose cluster.
+        hatch run proceed run tests/smoke_test.yaml --runner slurm
+
+        # Done with the local Slurm cluster.
+        make down
