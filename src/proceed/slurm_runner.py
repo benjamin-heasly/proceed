@@ -46,10 +46,15 @@ class SlurmRunner:
         logging.info(f"Step '{step.name}': running srun command: {args}")
 
         try:
-            with open(log_path, 'w') as log_file:
-                result = subprocess.run(args, stdout=log_file, stderr=subprocess.STDOUT)
-            logging.info(f"Step '{step.name}': srun completed with exit code {result.returncode}.")
-            return (step.image, result.returncode, None)
+            process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            with open(log_path, 'w') as f:
+                for log_entry in process.stdout:
+                    f.write(log_entry)
+                    logging.info(f"Step '{step.name}': {log_entry.strip()}\r")
+
+            return_code = process.wait()
+            logging.info(f"Step '{step.name}': completed with exit code {return_code}.")
+            return (step.image, return_code, None)
 
         except Exception as e:
             error_message = f"{type(e).__name__}: {e.args}\n"
