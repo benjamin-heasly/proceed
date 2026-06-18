@@ -44,4 +44,6 @@ jobs:
         hatch run proceed run tests/smoke_test.yaml --runner slurm
 
         # Done with the local Slurm cluster.
+        cd slurm-docker-cluster
         make down
+        make clean
