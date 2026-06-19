@@ -81,10 +81,10 @@ class SlurmRunner:
         args = [self.srun_path, f"--container-image={step.image}"]
 
         mounts = _mounts_from_volumes(step.volumes)
-        for host, container, mode in mounts:
-            if mode == "ro":
-                logging.warning(f"Step '{step.name}': Pyxis ignoring read-only for: '{host}:{container}'")
-            args.append(f"--container-mounts={host}:{container}")
+        if mounts:
+            container_mounts = [f"{host}:{container}:{mode}" for host, container, mode in mounts]
+            container_mounts_arg = ",".join(container_mounts)
+            args.append(f"--container-mounts={container_mounts_arg}")
 
         if step.working_dir:
             args.append(f"--container-workdir={step.working_dir}")

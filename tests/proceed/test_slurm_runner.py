@@ -86,27 +86,28 @@ def test_step_volumes(success_runner, tmp_path):
     assert f"--container-mounts={host_dir}:/data" in logs
 
 
-def test_step_readonly_volume_warns(success_runner, tmp_path, caplog):
-    import logging
-    host_dir = tmp_path / "data"
-    host_dir.mkdir()
+def test_step_two_configured_volumes(success_runner, tmp_path):
+    host_dir_1 = tmp_path / "data1"
+    host_dir_1.mkdir()
+    host_dir_2 = tmp_path / "data2"
+    host_dir_2.mkdir()
     step = Step(
-        name="read-only volume",
+        name="two volumes",
         image="alpine:latest",
-        volumes={str(host_dir): {"bind": "/data", "mode": "ro"}},
+        volumes={
+            str(host_dir_1): {"bind": "/data_1", "mode": "ro"},
+            str(host_dir_2): {"bind": "/data_2", "mode": "rw"}
+        },
         command=["ls"],
     )
-    with caplog.at_level(logging.WARNING):
-        step_result = run_step(step, Path(tmp_path, "step.log"), success_runner)
-    assert "ignoring read-only" in caplog.messages[0]
+    step_result = run_step(step, Path(tmp_path, "step.log"), success_runner)
 
-    # Mount should still be present even though ro is unsupported.
     assert step_result.exit_code == 0
     assert step_result.image_id == "alpine:latest"
     assert step_result.timing._is_complete()
     with open(step_result.log_file) as f:
         logs = f.read()
-    assert f"--container-mounts={host_dir}:/data" in logs
+    assert f"--container-mounts={host_dir_1}:/data_1:ro,{host_dir_2}:/data_2:rw" in logs
 
 
 def test_step_working_dir(success_runner, tmp_path):

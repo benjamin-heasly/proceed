@@ -1,14 +1,19 @@
-version: 0.0.12
+version: 0.1.1
 args:
   message: "Hello Proceed"
+  tmp: /tmp
 prototype:
   user: self
   volumes:
-    /tmp: /tmp
+    $tmp/ignored: /ignored
 steps:
   - name: write-message
     image: alpine:latest
-    command: ["/bin/sh", "-c", "echo '$message' > /tmp/proceed_smoke_test.txt"]
+    volumes:
+      $tmp/shared: /shared
+    command: ["/bin/sh", "-c", "echo '$message' > /shared/proceed_smoke_test.txt"]
   - name: read-message
     image: alpine:latest
-    command: ["cat", "/tmp/proceed_smoke_test.txt"]
+    volumes:
+      $tmp/shared: {"bind": /shared, "mode": "ro"}
+    command: ["cat", "/shared/proceed_smoke_test.txt"]
