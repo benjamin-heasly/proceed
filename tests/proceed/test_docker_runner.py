@@ -9,7 +9,8 @@ from pytest import fixture
 
 from proceed.model import Pipeline, ExecutionRecord, Step, StepResult
 from proceed.run_recorder import RunRecorder
-from proceed.docker_runner import run_pipeline, run_step
+from proceed.docker_runner import DockerRunner
+from proceed.runner_protocol import run_pipeline, run_step
 
 
 @fixture
@@ -41,7 +42,7 @@ def read_step_logs(step_result: StepResult) -> str:
 
 def test_step_image_not_found(tmp_path):
     step = Step(name="image not found", image="no_such_image")
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == None
     assert step_result.exit_code == -1
@@ -50,7 +51,7 @@ def test_step_image_not_found(tmp_path):
 
 def test_step_command_not_found(alpine_image, tmp_path):
     step = Step(name="command not found", image=alpine_image.tags[0], command=["no_such_command"])
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == None
     assert step_result.exit_code == -1
@@ -59,7 +60,7 @@ def test_step_command_not_found(alpine_image, tmp_path):
 
 def test_step_command_error(alpine_image, tmp_path):
     step = Step(name="command error", image=alpine_image.tags[0], command=["ls", "no_such_dir"])
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 1
@@ -68,7 +69,7 @@ def test_step_command_error(alpine_image, tmp_path):
 
 def test_step_command_success(alpine_image, tmp_path):
     step = Step(name="command success", image=alpine_image.tags[0], command=["echo", "hello to you"])
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -77,14 +78,14 @@ def test_step_command_success(alpine_image, tmp_path):
 
 def test_step_command_interrupt(alpine_image, tmp_path):
     step = Step(name="command interrupt", image=alpine_image.tags[0], command=["/bin/sh", "-c", "kill -INT $$"])
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.exit_code == 130
 
 
 def test_step_working_dir(alpine_image, tmp_path):
     step = Step(name="working dir", working_dir="/home", image=alpine_image.tags[0], command=["pwd"])
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -98,7 +99,7 @@ def test_step_environment(alpine_image, tmp_path):
         image=alpine_image.tags[0],
         command=["/bin/sh", "-c", "echo $ENV_VAR"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -112,7 +113,7 @@ def test_step_network_mode_none(alpine_image, tmp_path):
         image=alpine_image.tags[0],
         command=["ifconfig"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -126,7 +127,7 @@ def test_step_network_mode_bridge(alpine_image, tmp_path):
         image=alpine_image.tags[0],
         command=["ifconfig"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -140,7 +141,7 @@ def test_step_mac_address(alpine_image, tmp_path):
         image=alpine_image.tags[0],
         command=["ifconfig"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -155,7 +156,7 @@ def test_step_gpus_all(ubuntu_image, tmp_path):
         image=ubuntu_image.tags[0],
         command=["nvidia-smi"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
 
     # Awkwardly, the result of this test depends on whether the host has docker "--gpus" support.
@@ -190,7 +191,7 @@ def test_step_gpus_none(ubuntu_image, tmp_path):
         image=ubuntu_image.tags[0],
         command=["nvidia-smi"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
 
     # When we request gpus as a non-truty value like the empty string "", we expect no GPU device support.
@@ -208,7 +209,7 @@ def test_step_gpu_by_id(ubuntu_image, tmp_path):
         image=ubuntu_image.tags[0],
         command=["nvidia-smi"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
 
     # The outcome of this test depends on whether the host has docker "--gpus" support.
@@ -236,7 +237,7 @@ def test_step_gpus_by_index(ubuntu_image, tmp_path):
         image=ubuntu_image.tags[0],
         command=["nvidia-smi"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
 
     # The outcome of this test depends on whether the host has docker "--gpus" support.
@@ -263,7 +264,7 @@ def test_step_first_gpu_by_index(ubuntu_image, tmp_path):
         image=ubuntu_image.tags[0],
         command=["nvidia-smi"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
 
     # Awkwardly, the result of this test depends on whether the host has docker "--gpus" support.
@@ -297,7 +298,7 @@ def test_step_default_user(alpine_image, tmp_path):
         image=alpine_image.tags[0],
         command=["id"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -312,7 +313,7 @@ def test_step_self_user_and_group(alpine_image, tmp_path):
         image=alpine_image.tags[0],
         command=["id"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -332,7 +333,7 @@ def test_step_self_user_with_host_group_name(alpine_image, tmp_path):
         image=alpine_image.tags[0],
         command=["id"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -349,7 +350,7 @@ def test_step_self_user_with_gid(alpine_image, tmp_path):
         image=alpine_image.tags[0],
         command=["id"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -365,7 +366,7 @@ def test_step_existing_container_user(alpine_image, tmp_path):
         image=alpine_image.tags[0],
         command=["id"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -380,7 +381,7 @@ def test_step_arbitrary_uid_gid_user(alpine_image, tmp_path):
         image=alpine_image.tags[0],
         command=["id"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -396,7 +397,7 @@ def test_step_shm_size(alpine_image, tmp_path):
         image=alpine_image.tags[0],
         command=["df", "-h"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -411,7 +412,7 @@ def test_step_privileged(alpine_image, tmp_path):
         image=alpine_image.tags[0],
         command=["ls", "/dev"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -427,7 +428,7 @@ def test_step_progress_file_error(alpine_image, tmp_path):
         command=["ls", "no_such_dir"],
         progress_file=progress_file.as_posix()
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 1
@@ -451,7 +452,7 @@ def test_step_progress_file_success(alpine_image, tmp_path):
         command=["ls", "."],
         progress_file=progress_file.as_posix()
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -474,7 +475,7 @@ def test_step_progress_file_create_parents(alpine_image, tmp_path):
         command=["ls", "."],
         progress_file=progress_file.as_posix()
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -500,7 +501,7 @@ def test_step_progress_file_skip(alpine_image, tmp_path):
         command=["ls", "."],
         progress_file=progress_file.as_posix()
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.skipped
     assert step_result.exit_code is None
@@ -520,7 +521,7 @@ def test_step_progress_file_force_rerun(alpine_image, tmp_path):
         command=["ls", "."],
         progress_file=progress_file.as_posix()
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"), force_rerun=True)
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner(), force_rerun=True)
     assert step_result.name == step.name
     assert not step_result.skipped
     assert step_result.exit_code == 0
@@ -539,7 +540,7 @@ def test_step_files_done(alpine_image, fixture_path, tmp_path):
         volumes={fixture_dir: "/fixture_files"},
         match_done=["*.yaml", "*.ignore"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
 
     # The runner should find yaml files in the working dir, "tests/proceed/fixture_files".
     # The existence of these files should cause the step itself to be skipped.
@@ -568,7 +569,7 @@ def test_step_files_done_force_rerun(alpine_image, fixture_path, tmp_path):
         volumes={fixture_dir: "/fixture_files"},
         match_done=["*.yaml", "*.ignore"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"), force_rerun=True)
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner(), force_rerun=True)
 
     # The runner should find yaml files in the working dir, "tests/proceed/fixture_files".
     # The despite existence of these files, force_rerun should cause the step to be re-run.
@@ -596,7 +597,7 @@ def test_step_files_in(alpine_image, fixture_path, tmp_path):
         volumes={fixture_dir: "/fixture_files"},
         match_in=["*.yaml", "*.ignore"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
 
     # The runner should find yaml files in the working dir, "tests/proceed/fixture_files".
     # The existence of these files should be noted, and the step should run normally.
@@ -625,7 +626,7 @@ def test_step_files_out(alpine_image, fixture_path, tmp_path):
         volumes={fixture_dir: "/fixture_files"},
         match_out=["*.yaml", "*.ignore"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
 
     # The runner should find yaml files in the working dir, "tests/proceed/fixture_files".
     # The existence of these files should be noted, and the step should run normally.
@@ -654,7 +655,7 @@ def test_step_files_summary(alpine_image, fixture_path, tmp_path):
         volumes={fixture_dir: "/fixture_files"},
         match_summary=["*.yaml", "*.ignore"]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
 
     # The runner should find yaml files in the working dir, "tests/proceed/fixture_files".
     # The existence of these files should be noted, and the step should run normally.
@@ -680,7 +681,7 @@ def test_step_command_int_arg(alpine_image, tmp_path):
         image=alpine_image.tags[0],
         command=["du", "-d", 1]
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.name == step.name
     assert step_result.image_id == alpine_image.id
     assert step_result.exit_code == 0
@@ -703,7 +704,7 @@ def test_pipeline_with_args(alpine_image, tmp_path):
         "arg_1": "quux"
     }
     run_recorder = RunRecorder(tmp_path)
-    pipeline_result = run_pipeline(pipeline, tmp_path, run_recorder, args)
+    pipeline_result = run_pipeline(pipeline, tmp_path, run_recorder, DockerRunner(), args)
     expected_amended = Pipeline(
         args={
             "arg_1": "quux",
@@ -758,7 +759,7 @@ def test_pipeline_with_environment(alpine_image, tmp_path):
         ]
     )
     run_recorder = RunRecorder(tmp_path)
-    pipeline_result = run_pipeline(pipeline, tmp_path, run_recorder)
+    pipeline_result = run_pipeline(pipeline, tmp_path, run_recorder, DockerRunner())
     expected_step_results = [
         StepResult(name="step 1", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_1.log").as_posix()),
         StepResult(name="step 2", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_2.log").as_posix())
@@ -798,7 +799,7 @@ def test_pipeline_with_network_config(alpine_image, tmp_path):
         ]
     )
     run_recorder = RunRecorder(tmp_path)
-    pipeline_result = run_pipeline(pipeline, tmp_path, run_recorder)
+    pipeline_result = run_pipeline(pipeline, tmp_path, run_recorder, DockerRunner())
 
     # First step should override the pipeline's network config.
     assert pipeline_result.step_results[0].name == pipeline.steps[0].name
@@ -825,25 +826,25 @@ def test_pipeline_steps_to_run(alpine_image, tmp_path):
     )
 
     run_recorder = RunRecorder(tmp_path)
-    default_run_all = run_pipeline(pipeline, tmp_path, run_recorder)
+    default_run_all = run_pipeline(pipeline, tmp_path, run_recorder, DockerRunner())
     assert len(default_run_all.step_results) == 3
     assert default_run_all.step_results[0].name == "step 1"
     assert default_run_all.step_results[1].name == "step 2"
     assert default_run_all.step_results[2].name == "step 3"
 
-    none_garbage = run_pipeline(pipeline, tmp_path, run_recorder, step_names=['garbage'])
+    none_garbage = run_pipeline(pipeline, tmp_path, run_recorder, DockerRunner(), step_names=['garbage'])
     assert len(none_garbage.step_results) == 0
 
-    middle_only = run_pipeline(pipeline, tmp_path, run_recorder, step_names=['step 2'])
+    middle_only = run_pipeline(pipeline, tmp_path, run_recorder, DockerRunner(), step_names=['step 2'])
     assert len(middle_only.step_results) == 1
     assert middle_only.step_results[0].name == "step 2"
 
-    skip_middle = run_pipeline(pipeline, tmp_path, run_recorder, step_names=['step 1', 'step 3'])
+    skip_middle = run_pipeline(pipeline, tmp_path, run_recorder, DockerRunner(), step_names=['step 1', 'step 3'])
     assert len(skip_middle.step_results) == 2
     assert skip_middle.step_results[0].name == "step 1"
     assert skip_middle.step_results[1].name == "step 3"
 
-    explicit_run_all = run_pipeline(pipeline, tmp_path, run_recorder, step_names=['step 1', 'step 2', 'step 3'])
+    explicit_run_all = run_pipeline(pipeline, tmp_path, run_recorder, DockerRunner(), step_names=['step 1', 'step 2', 'step 3'])
     assert len(explicit_run_all.step_results) == 3
     assert explicit_run_all.step_results[0].name == "step 1"
     assert explicit_run_all.step_results[1].name == "step 2"
@@ -860,7 +861,7 @@ def test_fail_on_docker_exception(alpine_image, tmp_path):
         image=alpine_image.tags[0],
         command=["echo", "should not get this far!"],
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"), client_kwargs=bad_client_kwargs)
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner(client_kwargs=bad_client_kwargs))
     logs = read_step_logs(step_result)
     assert "DockerException" in logs
     assert "should not get this far!" not in logs
@@ -874,7 +875,7 @@ def test_retry_on_unexpected_exception(alpine_image, tmp_path):
         image=alpine_image.tags[0],
         command=["echo", "should not get this far!"],
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"), client_kwargs=bad_client_kwargs)
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner(client_kwargs=bad_client_kwargs))
     logs = read_step_logs(step_result)
     assert "Container attempts/retries at 1 out of 3." in logs
     assert "Container attempts/retries at 2 out of 3." in logs
@@ -894,7 +895,7 @@ def test_local_dir_as_volume(alpine_image, tmp_path):
         volumes={".": "."},
         command=["ls", "-A", local_dir],
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.exit_code == 0
     logs = read_step_logs(step_result)
     container_entries = set(logs.split("\n")[:-1])
@@ -911,7 +912,7 @@ def test_create_volume_as_host_user(alpine_image, tmp_path):
         volumes={new_dir: new_dir},
         command=["ls", new_dir],
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.exit_code == 0
 
     assert new_path.exists()
@@ -929,7 +930,7 @@ def test_X11_display_env(alpine_image, tmp_path):
         command=["env"],
         X11=True
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.exit_code == 0
     logs = read_step_logs(step_result)
     assert "DISPLAY=:42" in logs
@@ -946,7 +947,7 @@ def test_X11_local_socket_dir(alpine_image, tmp_path):
         command=["ls", "/tmp/.X11-unix"],
         X11=True
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.exit_code == 0
 
 
@@ -963,7 +964,7 @@ def test_X11_xauthority_file(alpine_image, tmp_path):
         command=["ls", "/var/.Xauthority"],
         X11=True
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.exit_code == 0
 
 
@@ -984,7 +985,7 @@ def test_X11_xauthority_file_expanduser(alpine_image, tmp_path):
         command=["ls", "/var/.Xauthority"],
         X11=True
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     rmtree(user_test_dir)
     assert step_result.exit_code == 0
 
@@ -1002,7 +1003,7 @@ def test_X11_xauthority_env(alpine_image, tmp_path):
         command=["env"],
         X11=True
     )
-    step_result = run_step(step, Path(tmp_path, "step.log"))
+    step_result = run_step(step, Path(tmp_path, "step.log"), DockerRunner())
     assert step_result.exit_code == 0
     logs = read_step_logs(step_result)
     assert "XAUTHORITY=/var/.Xauthority" in logs
@@ -1043,7 +1044,7 @@ def test_pipeline_with_X11(alpine_image, tmp_path):
         ]
     )
     run_recorder = RunRecorder(tmp_path)
-    pipeline_result = run_pipeline(pipeline, tmp_path, run_recorder)
+    pipeline_result = run_pipeline(pipeline, tmp_path, run_recorder, DockerRunner())
     expected_step_results = [
         StepResult(name="step 1", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_1.log").as_posix()),
         StepResult(name="step 2", image_id=alpine_image.id, exit_code=0, log_file=Path(tmp_path, "step_2.log").as_posix())
@@ -1094,7 +1095,7 @@ def test_pipeline_interrupted(alpine_image, tmp_path):
     )
 
     run_recorder = RunRecorder(tmp_path)
-    execution_record = run_pipeline(pipeline, tmp_path, run_recorder)
+    execution_record = run_pipeline(pipeline, tmp_path, run_recorder, DockerRunner())
     assert len(execution_record.step_results) == 2
     assert execution_record.step_results[0].name == "step 1"
     assert execution_record.step_results[0].exit_code == 0

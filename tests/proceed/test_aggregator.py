@@ -3,7 +3,8 @@ from pathlib import Path
 from pytest import fixture
 from proceed.model import Pipeline
 from proceed.run_recorder import RunRecorder
-from proceed.docker_runner import run_pipeline
+from proceed.docker_runner import DockerRunner
+from proceed.runner_protocol import run_pipeline
 from proceed.aggregator import summarize_results, collect_custom_columns
 
 
@@ -37,7 +38,7 @@ def run(pipeline: Pipeline,
     execution_path = Path(results_dir, results_group, results_id)
     execution_path.mkdir(parents=True, exist_ok=True)
     run_recorder = RunRecorder(execution_path)
-    execution_record = run_pipeline(pipeline, execution_path, run_recorder, args)
+    execution_record = run_pipeline(pipeline, execution_path, run_recorder, DockerRunner(), args)
     out_path = Path(execution_path, "execution_record.yaml")
 
     with open(out_path, "w") as f:
