@@ -97,7 +97,6 @@ class SlurmRunner:
 
         if step.command:
             command = [str(arg) for arg in step.command] if isinstance(step.command, list) else [step.command]
-            args.append("--container-entrypoint")
             args.append("--")
             args.extend(command)
 
