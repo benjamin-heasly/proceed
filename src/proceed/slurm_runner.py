@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Union
 
 from proceed.model import Step
+from proceed.runner_protocol import apply_step_X11
 
 
 def _mounts_from_volumes(
@@ -42,6 +43,9 @@ class SlurmRunner:
         """
         self._warn_unsupported_fields(step)
 
+        # Don't try to mount ~/.Xauthority on Slurm, instead use pyxis "--container-mount-home" below.
+        apply_step_X11(step, mount_and_set_xauthority=False)
+
         args = self._build_srun_args(step)
         logging.info(f"Step '{step.name}': running srun command: {args}")
 
@@ -68,8 +72,7 @@ class SlurmRunner:
             "network_mode": step.network_mode,
             "privileged": step.privileged,
             "shm_size": step.shm_size,
-            "user": step.user,
-            "X11": step.X11
+            "user": step.user
         }
         for field_name, value in unsupported_fields.items():
             if value:
@@ -79,9 +82,12 @@ class SlurmRunner:
         """Build the srun argument list for the given step."""
         args = [
             self.srun_path,
-            f"--container-image={step.image}",
-            "--container-mount-home"
+            f"--container-image={step.image}"
         ]
+
+        if step.X11:
+            # Give the container access to eg ~/.Xauthority
+            args.append("--container-mount-home")
 
         mounts = _mounts_from_volumes(step.volumes)
         if mounts:

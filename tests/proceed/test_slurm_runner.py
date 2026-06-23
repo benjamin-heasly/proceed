@@ -138,6 +138,40 @@ def test_step_environment(success_runner, tmp_path):
     assert f"--export=BAZ=quux" in logs
 
 
+    step = Step(
+        name="env",
+        image="alpine:latest",
+        environment={"FOO": "bar", "BAZ": "quux"},
+        command=["env"],
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"), success_runner)
+    assert step_result.exit_code == 0
+    assert step_result.image_id == "alpine:latest"
+    assert step_result.timing._is_complete()
+    with open(step_result.log_file) as f:
+        logs = f.read()
+    assert f"--export=FOO=bar" in logs
+    assert f"--export=BAZ=quux" in logs
+
+
+def test_step_x11_config(success_runner, tmp_path):
+    step = Step(
+        name="x11",
+        image="alpine:latest",
+        X11=True,
+        command=["env"],
+    )
+    step_result = run_step(step, Path(tmp_path, "step.log"), success_runner)
+    assert step_result.exit_code == 0
+    assert step_result.image_id == "alpine:latest"
+    assert step_result.timing._is_complete()
+    with open(step_result.log_file) as f:
+        logs = f.read()
+    assert "--container-mount-home" in logs
+    assert "--container-mounts=/tmp/.X11-unix:/tmp/.X11-unix:rw" in logs
+    assert "--export=DISPLAY" in logs
+
+
 def test_step_gpus_all(success_runner, tmp_path):
     step = Step(name="gpus", image="ubuntu:latest", gpus=True, command=["nvidia-smi"])
     step_result = run_step(step, Path(tmp_path, "step.log"), success_runner)
@@ -192,8 +226,7 @@ def test_step_docker_only_fields_warn(success_runner, tmp_path, caplog):
         privileged=True,
         shm_size="2g",
         user="self",
-        command=["id"],
-        X11=True
+        command=["id"]
     )
     with caplog.at_level(logging.WARNING):
         run_step(step, Path(tmp_path, "step.log"), success_runner)
@@ -203,7 +236,6 @@ def test_step_docker_only_fields_warn(success_runner, tmp_path, caplog):
     assert "Step 'docker fields': 'privileged' is ignored by Slurm runner." in caplog.messages
     assert "Step 'docker fields': 'shm_size' is ignored by Slurm runner." in caplog.messages
     assert "Step 'docker fields': 'user' is ignored by Slurm runner." in caplog.messages
-    assert "Step 'docker fields': 'X11' is ignored by Slurm runner." in caplog.messages
 
 
 def test_pipeline_two_steps(success_runner, tmp_path):

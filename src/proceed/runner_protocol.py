@@ -29,7 +29,12 @@ class Runner(Protocol):
         ...
 
 
-def apply_step_X11(step: Step) -> Step:
+def apply_step_X11(
+    step: Step,
+    set_display: bool = True,
+    mount_tmp_x11_unix: bool = True,
+    mount_and_set_xauthority: bool = True
+) -> Step:
     """Set up the step as an X11 gui client with DISPLAY access.
 
     This is implemented here in the docker_runner and not in the model
@@ -38,37 +43,47 @@ def apply_step_X11(step: Step) -> Step:
     if not step.X11:
         return
 
-    if "DISPLAY" not in step.environment:
-        display = environ.get("DISPLAY")
-        logging.info(f"Step '{step.name}': using X11 DISPLAY: {display}")
-        step.environment["DISPLAY"] = display
+    if set_display:
+        if "DISPLAY" not in step.environment:
+            display = environ.get("DISPLAY")
+            if display:
+                logging.info(f"Step '{step.name}': using X11 DISPLAY: {display}")
+                step.environment["DISPLAY"] = display
+            else:  # pragma: no cover
+                logging.warning(f"Step '{step.name}': X11 requested but DISPLAY not set in environment.")
 
-    local_socket_dir = "/tmp/.X11-unix"
-    if local_socket_dir not in step.volumes:
-        logging.info(f"Step '{step.name}': using X11 local socket dir: {local_socket_dir}")
-        step.volumes[local_socket_dir] = local_socket_dir
+    if mount_tmp_x11_unix:
+        local_socket_dir = "/tmp/.X11-unix"
+        if local_socket_dir not in step.volumes:
+            if Path(local_socket_dir).exists():
+                logging.info(f"Step '{step.name}': using X11 local socket dir: {local_socket_dir}")
+                step.volumes[local_socket_dir] = local_socket_dir
+            else:  # pragma: no cover
+                logging.warning(f"Step '{step.name}': X11 requested but {local_socket_dir} does not exist.")
 
-    if step.network_mode is None:
-        logging.info(f"Step '{step.name}': using network_mode host for X11 support")
-        step.network_mode = "host"
+        if step.network_mode is None:
+            logging.info(f"Step '{step.name}': using network_mode 'host' for X11 support")
+            step.network_mode = "host"
 
-    default_xauthority = "~/.Xauthority"
-    xauthority = environ.get("XAUTHORITY", default_xauthority)
-    from pathlib import Path as _Path
-    xauthorith_path = _Path(xauthority).expanduser().absolute()
-    logging.info(f"Step '{step.name}': looking for .Xauthority cookie file at {xauthority} AKA {xauthorith_path}")
-    if xauthorith_path.exists():
-        xauthority_host = xauthorith_path.as_posix()
-        logging.info(f"Step '{step.name}': found .Xauthority cookie file on host at {xauthority_host}")
+    if mount_and_set_xauthority:
+        default_xauthority = "~/.Xauthority"
+        xauthority = environ.get("XAUTHORITY", default_xauthority)
+        from pathlib import Path as _Path
+        xauthorith_path = _Path(xauthority).expanduser().absolute()
+        logging.info(f"Step '{step.name}': looking for .Xauthority cookie file at {xauthority} AKA {xauthorith_path}")
+        if xauthorith_path.exists():
+            xauthority_host = xauthorith_path.as_posix()
+            logging.info(f"Step '{step.name}': found .Xauthority cookie file on host at {xauthority_host}")
 
-        xauthority_container = "/var/.Xauthority"
-        if xauthority_host not in step.volumes:
-            logging.info(f"Step '{step.name}': adding .Xauthority cookie file to container at {xauthority_container}")
-            step.volumes[xauthority_host] = xauthority_container
+            xauthority_container = "/var/.Xauthority"
+            if xauthority_host not in step.volumes:
+                logging.info(
+                    f"Step '{step.name}': adding .Xauthority cookie file to container at {xauthority_container}")
+                step.volumes[xauthority_host] = xauthority_container
 
-        if "XAUTHORITY" not in step.environment:
-            logging.info(f"Step '{step.name}': setting XAUTHORITY env var in container to {xauthority_container}")
-            step.environment["XAUTHORITY"] = xauthority_container
+            if "XAUTHORITY" not in step.environment:
+                logging.info(f"Step '{step.name}': setting XAUTHORITY env var in container to {xauthority_container}")
+                step.environment["XAUTHORITY"] = xauthority_container
 
     return step
 
@@ -251,7 +266,7 @@ def run_pipeline(
     return execution_record
 
 
-def make_runner(runner_name: str, **kwargs) -> Runner|None:
+def make_runner(runner_name: str, **kwargs) -> Runner | None:
     """Construct a Runner by name.
 
     Lazy imports prevent ImportError -- eg don't try to import docker on a slurm-only system.
@@ -270,7 +285,7 @@ def make_runner(runner_name: str, **kwargs) -> Runner|None:
 def discover_runner(
     docker_environment: dict[str, str] = environ,
     slurm_srun_path: str = "srun"
-) -> Runner|None:
+) -> Runner | None:
     """Return the first available runner, preferring Docker over Slurm.
 
     Docker is confirmed by pinging the daemon (not just finding the CLI).

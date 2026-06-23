@@ -249,7 +249,6 @@ def resolve_config_options(preferred_options: dict[str, Any] = {}) -> ConfigOpti
 
 def safe_load_config_options(options_file: str) -> dict[str, Any]:
     if not options_file:
-        print("nothing")
         return None
 
     logging.info(f"Looking for config options in file: {options_file}")
