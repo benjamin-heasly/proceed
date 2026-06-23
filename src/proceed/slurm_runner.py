@@ -78,7 +78,11 @@ class SlurmRunner:
 
     def _build_srun_args(self, step: Step) -> list[str]:
         """Build the srun argument list for the given step."""
-        args = [self.srun_path, f"--container-image={step.image}"]
+        args = [
+            self.srun_path,
+            f"--container-image={step.image}",
+            "--container-mount-home"
+        ]
 
         mounts = _mounts_from_volumes(step.volumes)
         if mounts:
