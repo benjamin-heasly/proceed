@@ -3,10 +3,13 @@ from typing import Union, Any
 from pathlib import Path
 from os import getuid, getgid
 from grp import getgrnam
+
 import docker
 from docker.types import DeviceRequest
 from docker.errors import DockerException, APIError
+
 from proceed.model import Step
+from proceed.runner_protocol import apply_step_X11
 
 
 def resolve_user(user: str) -> str:
@@ -65,6 +68,8 @@ class DockerRunner:
 
         Returns (image_id, exit_code, error_message). On success error_message is None.
         """
+
+        apply_step_X11(step)
 
         retried_exception = None
         attempts = 0

@@ -193,15 +193,17 @@ def test_step_docker_only_fields_warn(success_runner, tmp_path, caplog):
         shm_size="2g",
         user="self",
         command=["id"],
+        X11=True
     )
     with caplog.at_level(logging.WARNING):
         run_step(step, Path(tmp_path, "step.log"), success_runner)
 
-    assert "Step 'docker fields': field 'mac_address' is not supported by the Slurm runner and will be ignored." in caplog.messages
-    assert "Step 'docker fields': field 'network_mode' is not supported by the Slurm runner and will be ignored." in caplog.messages
-    assert "Step 'docker fields': field 'privileged' is not supported by the Slurm runner and will be ignored." in caplog.messages
-    assert "Step 'docker fields': field 'shm_size' is not supported by the Slurm runner and will be ignored." in caplog.messages
-    assert "Step 'docker fields': field 'user' is not supported by the Slurm runner and will be ignored." in caplog.messages
+    assert "Step 'docker fields': 'mac_address' is ignored by Slurm runner." in caplog.messages
+    assert "Step 'docker fields': 'network_mode' is ignored by Slurm runner." in caplog.messages
+    assert "Step 'docker fields': 'privileged' is ignored by Slurm runner." in caplog.messages
+    assert "Step 'docker fields': 'shm_size' is ignored by Slurm runner." in caplog.messages
+    assert "Step 'docker fields': 'user' is ignored by Slurm runner." in caplog.messages
+    assert "Step 'docker fields': 'X11' is ignored by Slurm runner." in caplog.messages
 
 
 def test_pipeline_two_steps(success_runner, tmp_path):

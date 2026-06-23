@@ -131,8 +131,6 @@ def run_step(
     files_in = match_patterns_in_dirs(volume_dirs, step.match_in)
     logging.info(f"Step '{step.name}': found {count_matches(files_in)} input files.")
 
-    apply_step_X11(step)
-
     (image_id, exit_code, error_message) = runner.run_container(step, log_path)
     finish = datetime.now(timezone.utc)
     finish_iso = finish.isoformat(sep="T")

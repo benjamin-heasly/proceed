@@ -40,7 +40,7 @@ class SlurmRunner:
         Returns (image_id, exit_code, error_message). On success error_message is None.
         The image_id is set to the step's image string to record what was requested.
         """
-        self._warn_docker_only_fields(step)
+        self._warn_unsupported_fields(step)
 
         args = self._build_srun_args(step)
         logging.info(f"Step '{step.name}': running srun command: {args}")
@@ -61,20 +61,19 @@ class SlurmRunner:
             logging.error(f"Step '{step.name}': {error_message}", exc_info=True)
             return (None, -1, error_message)
 
-    def _warn_docker_only_fields(self, step: Step) -> None:
-        """Warn about Step fields that have no Slurm/Pyxis equivalent."""
-        docker_only = {
+    def _warn_unsupported_fields(self, step: Step) -> None:
+        """Warn about Step fields that are not used with Slurm/Pyxis equivalent."""
+        unsupported_fields = {
             "mac_address": step.mac_address,
             "network_mode": step.network_mode,
             "privileged": step.privileged,
             "shm_size": step.shm_size,
             "user": step.user,
+            "X11": step.X11
         }
-        for field_name, value in docker_only.items():
+        for field_name, value in unsupported_fields.items():
             if value:
-                logging.warning(
-                    f"Step '{step.name}': field '{field_name}' is not supported by the Slurm runner and will be ignored."
-                )
+                logging.warning(f"Step '{step.name}': '{field_name}' is ignored by Slurm runner.")
 
     def _build_srun_args(self, step: Step) -> list[str]:
         """Build the srun argument list for the given step."""
