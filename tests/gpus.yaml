@@ -1,0 +1,8 @@
+version: 0.1.4
+prototype:
+  user: self
+steps:
+  - name: gpus
+    image: ubuntu:latest
+    gpus: True
+    command: [nvidia-smi]

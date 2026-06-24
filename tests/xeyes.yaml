@@ -1,8 +1,8 @@
-version: 0.1.3
+version: 0.1.4
 prototype:
   user: self
 steps:
   - name: xeyes
     image: d7xdev/xeyes
     X11: True
-    command: ['/bin/sh', '-c', 'xeyes']
+    command: ['xeyes']
