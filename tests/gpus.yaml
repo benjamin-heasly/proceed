@@ -3,6 +3,6 @@ prototype:
   user: self
 steps:
   - name: gpus
-    image: ubuntu:latest
+    image: nvidia/cuda:12.2.0-base-ubuntu22.04
     gpus: True
     command: [nvidia-smi]
