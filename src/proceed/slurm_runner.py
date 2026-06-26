@@ -102,7 +102,7 @@ class SlurmRunner:
             args.append(f"--export={key}={value}")
 
         if step.gpus:
-            args.append(self._gpus_arg(step))
+            args.extend(self._gpus_args(step))
 
         if step.command:
             command = [str(arg) for arg in step.command] if isinstance(step.command, list) else [step.command]
@@ -111,12 +111,14 @@ class SlurmRunner:
 
         return args
 
-    def _gpus_arg(self, step: Step) -> str:
+    def _gpus_args(self, step: Step) -> list[str]:
         """Build the --gpus argument for Slurm."""
         if isinstance(step.gpus, list):
-            gpu_strs = [str(gpu) for gpu in step.gpus]
-            return f"--gpus-per-node={','.join(gpu_strs)}"
+            # If given as a list, pass these args to srun as-is.
+            return step.gpus
         elif step.gpus is True:
-            return f"--gpus-per-node=1"
+            # The simplest request, ask for one GPU.
+            return ["--gpus-per-node=1"]
         else:
-            return f"--gpus-per-node={step.gpus}"
+            # Ask for eg a specific GPU.
+            return [f"--gpus-per-node={step.gpus}"]

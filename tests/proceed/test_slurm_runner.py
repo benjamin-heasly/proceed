@@ -206,14 +206,15 @@ def test_step_gpus_one_number(success_runner, tmp_path):
 
 
 def test_step_gpus_list(success_runner, tmp_path):
-    step = Step(name="gpus", image="ubuntu:latest", gpus=["my-gpu:1", 42], command=["nvidia-smi"])
+    step = Step(name="gpus", image="ubuntu:latest", gpus=["--gpus-per-node=1", "--partition=cool-hardware"], command=["nvidia-smi"])
     step_result = run_step(step, Path(tmp_path, "step.log"), success_runner)
     assert step_result.exit_code == 0
     assert step_result.image_id == "ubuntu:latest"
     assert step_result.timing._is_complete()
     with open(step_result.log_file) as f:
         logs = f.read()
-    assert "--gpus-per-node=my-gpu:1,42" in logs
+    assert "--gpus-per-node=1" in logs
+    assert "--partition=cool-hardware" in logs
 
 
 def test_step_docker_only_fields_warn(success_runner, tmp_path, caplog):
