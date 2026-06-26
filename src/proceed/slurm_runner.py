@@ -50,7 +50,7 @@ class SlurmRunner:
         logging.info(f"Step '{step.name}': running srun command: {args}")
 
         try:
-            process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace")
             with open(log_path, 'w') as f:
                 for log_entry in process.stdout:
                     f.write(log_entry)
